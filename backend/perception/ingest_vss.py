@@ -78,11 +78,9 @@ def find_chunks(vss, vss_cam, queries=("vehicles and people on the street", "tra
 def longest_run(chunks, n):
     """Longest run of consecutive chunk numbers (same recording prefix), capped at n."""
     best, cur = [], []
-    for c in chunks:
+    for c in chunks:  # already filtered to one camera; filenames carry a per-chunk timestamp, so use the index
         i = _chunk_index(c["original_video"])
-        prefix = re.sub(r"chunk_\d+.*", "", c["original_video"])
-        if cur and i is not None and _chunk_index(cur[-1]["original_video"]) == i - 1 and \
-                re.sub(r"chunk_\d+.*", "", cur[-1]["original_video"]) == prefix:
+        if cur and i is not None and _chunk_index(cur[-1]["original_video"]) == i - 1:
             cur.append(c)
         else:
             cur = [c]

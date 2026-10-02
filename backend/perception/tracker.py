@@ -45,12 +45,22 @@ class _Track:
         self.miss = 0
 
 
+def nms(dets, thr=0.55):
+    """The VSS sidecars carry overlapping duplicate boxes for one object; keep the most confident per family."""
+    dets = sorted(dets, key=lambda d: -d[1])
+    keep = []
+    for lb, c, b in dets:
+        if all(FAMILY[lb] != FAMILY[k[0]] or iou(b[None], k[2][None])[0, 0] < thr for k in keep):
+            keep.append((lb, c, b))
+    return keep
+
+
 def track(frames, high=0.45, low=0.2, iou_gate=0.2, max_miss=15, min_hits=4):
     """frames: iterable of (frame_idx, t, [(label, conf, [x1,y1,x2,y2]), ...]) in time order.
     Returns rows (track_id, cls, frame, t, x1, y1, x2, y2, conf) for confirmed tracks."""
     active, done, next_id = [], [], 1
     for fidx, t, dets in frames:
-        dets = [(lb, c, np.asarray(b, float)) for lb, c, b in dets if lb in KEEP and c >= low and len(b) == 4]
+        dets = nms([(lb, c, np.asarray(b, float)) for lb, c, b in dets if lb in KEEP and c >= low and len(b) == 4])
         preds = np.array([tr.predict() for tr in active]) if active else np.zeros((0, 4))
         unmatched_tr = list(range(len(active)))
         highs = [d for d in dets if d[1] >= high]

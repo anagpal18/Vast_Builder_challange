@@ -70,6 +70,7 @@ def isolated_config(tmp_path, monkeypatch):
     saved = {p: p.read_text() for p in (CONFIG_DIR / "cameras.json", CONFIG_DIR / "sites.json")}
     from backend.perception import ingest_vss
     monkeypatch.setattr(ingest_vss, "SEG_DIR", tmp_path / "segs")
+    monkeypatch.setattr(ingest_vss, "STATUS", tmp_path / "ingest_status.json")
     yield ingest_vss
     for p, s in saved.items():
         p.write_text(s)
