@@ -20,8 +20,13 @@ export const MOCK_ROOT = `${import.meta.env.BASE_URL}mock`
 
 const cache = new Map<string, Promise<unknown>>()
 
+// Lists change with every run, so they are never served from the in-memory cache.
+const LIVE = /^\/(events|patterns|report|eval|runs)(\?|$|\/)/
+
 async function get<T>(real: string, mock: string): Promise<T> {
   const url = USE_MOCK ? `${MOCK_ROOT}/${mock}` : `${API_BASE}${real}`
+  const live = !USE_MOCK && LIVE.test(real) && !/\/(whatif|similar)$/.test(real)
+  if (live) cache.delete(url)
   if (!cache.has(url)) {
     cache.set(url, fetch(url).then((r) => {
       if (!r.ok) throw new Error(`${r.status} ${url}`)

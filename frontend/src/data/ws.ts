@@ -6,9 +6,17 @@ import { MOCK_ROOT, USE_MOCK, WS_URL } from './api.ts'
 
 export type Unsubscribe = () => void
 
-export function connectRun(onMessage: (m: WsMessage) => void, opts: { speed?: number } = {}): Unsubscribe {
+/** Resolves once the socket is open (or after `timeoutMs`), so a run never starts before we listen. */
+export let wsReady: Promise<void> = Promise.resolve()
+
+export function connectRun(onMessage: (m: WsMessage) => void, opts: { speed?: number; timeoutMs?: number } = {}): Unsubscribe {
   if (!USE_MOCK) {
     const ws = new WebSocket(WS_URL)
+    wsReady = new Promise((resolve) => {
+      const t = setTimeout(resolve, opts.timeoutMs ?? 3000)
+      ws.onopen = () => { clearTimeout(t); resolve() }
+      ws.onerror = () => { clearTimeout(t); resolve() }
+    })
     ws.onmessage = (e) => {
       try {
         onMessage(JSON.parse(e.data))

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { AlmostEvent, Pattern, Recommendation, RunCounts, Stage, Verdict, WsMessage } from './types.ts'
-import { api } from './data/api.ts'
-import { connectRun, type Unsubscribe } from './data/ws.ts'
+import { API_BASE, api } from './data/api.ts'
+import { connectRun, wsReady, type Unsubscribe } from './data/ws.ts'
 
 export type Phase = 'idle' | 'running' | 'done'
 export type StageStatus = 'pending' | 'active' | 'done'
@@ -64,10 +64,14 @@ export const useRun = create<RunState>((set, get) => ({
     unsub?.()
     set({ ...initial(), phase: 'running', runSeq: get().runSeq + 1 })
     try {
+      // Listen first, then start: a fast (replayed) run streams its first messages immediately.
+      unsub = connectRun((m) => apply(m, set, get))
+      await wsReady
       const { run_id } = await api.investigate()
       set({ runId: run_id })
-      unsub = connectRun((m) => apply(m, set, get))
     } catch (e) {
+      unsub?.()
+      unsub = null
       set({ phase: 'idle', error: String(e) })
     }
   },
@@ -75,6 +79,7 @@ export const useRun = create<RunState>((set, get) => ({
   reset() {
     unsub?.()
     unsub = null
+    if (API_BASE) fetch(`${API_BASE}/runs/cancel`, { method: 'POST' }).catch(() => {})
     set({ ...initial(), runSeq: get().runSeq })
   },
 

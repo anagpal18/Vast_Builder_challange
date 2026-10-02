@@ -81,8 +81,9 @@ def apply_h(H, pts):
 
 
 def h_inv(H):
+    """Inverse homography, scaled by its largest entry (H[2,2] can be 0, e.g. auto-calibrated cameras)."""
     Hi = np.linalg.inv(np.asarray(H, dtype=float))
-    return (Hi / Hi[2, 2]).tolist()
+    return (Hi / np.abs(Hi).max()).tolist()
 
 
 def homography_from_points(points):

@@ -315,8 +315,11 @@ class ReplayRun:
     TARGET_S = 20.0
     MAX_GAP_S = 1.2
 
+    ACTIVE: dict = {}
+
     def __init__(self, run_id, emit):
         self.run_id, self.emit = run_id, emit
+        self.cancelled = False
         self.data = json.loads(_recording_path().read_text())
         self.rec = {"run_id": run_id, "status": "running", "site_ids": self.data["sites"], "replay_of":
                     self.data["run_id"], "recorded_at": self.data["recorded_at"],
@@ -330,9 +333,14 @@ class ReplayRun:
         span = (msgs[-1][0] - msgs[0][0]) if msgs else 1.0
         scale = min(1.0, self.TARGET_S / max(span, 1e-6))
         prev = msgs[0][0] if msgs else 0.0
+        ReplayRun.ACTIVE[self.run_id] = self
+        time.sleep(0.8)  # lead-in: a client that POSTs before its WebSocket is open still hears the start
         try:
             for t, m in msgs:
                 time.sleep(min(self.MAX_GAP_S, max(0.0, (t - prev) * scale)))
+                if self.cancelled:
+                    self.rec["status"] = "cancelled"
+                    return
                 prev = t
                 m = dict(m)
                 if "run_id" in m:
@@ -347,13 +355,24 @@ class ReplayRun:
                     self.rec["status"] = "done"
                     m["status"] = "done"
                 self.emit(m)
+            if self.rec["status"] == "running":  # recordings end before the live run's own run.done
+                self._restore()
+                self.rec["status"] = "done"
+                self.emit({"type": "run.done", "run_id": self.run_id, "status": "done"})
         except Exception as e:
             log.exception("replay failed")
             self.rec.update(status="error", error=str(e))
             self.emit({"type": "run.done", "run_id": self.run_id, "status": "error"})
         finally:
+            ReplayRun.ACTIVE.pop(self.run_id, None)
             self.rec["finished_at"] = _now()
             STATE.save()
+
+    @classmethod
+    def cancel_all(cls):
+        for r in list(cls.ACTIVE.values()):
+            r.cancelled = True
+            r.rec["status"] = "cancelled"
 
     def _restore(self):
         d = self.data

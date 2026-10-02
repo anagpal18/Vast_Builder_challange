@@ -183,7 +183,8 @@ class InvestigateBody(BaseModel):
 def investigate(body: InvestigateBody | None = None, live: bool = False):
     """Default: replay the last successful live run (smooth, works offline). ?live=1 runs the pipeline for real
     (and records it). REPLAY_RUNS=0 makes live the default."""
-    if any(r.get("status") == "running" for r in STATE.runs.values()):
+    ReplayRun.cancel_all()  # a new click supersedes a replay that is still streaming
+    if any(r.get("status") == "running" and r.get("mode") != "replay" for r in STATE.runs.values()):
         raise HTTPException(409, "an investigation is already running")
     known = {x["site_id"] for x in load_sites()}
     bad = [x for x in (body.site_ids or []) if x not in known] if body else []
@@ -198,6 +199,13 @@ def investigate(body: InvestigateBody | None = None, live: bool = False):
     run = Run(run_id, body.site_ids if body else None, HUB.emit)
     threading.Thread(target=run.go, daemon=True, name=f"run-{run_id}").start()
     return {"run_id": run_id}
+
+
+@app.post("/runs/cancel")
+def cancel_runs():
+    """Stop any replay still streaming (Restart button)."""
+    ReplayRun.cancel_all()
+    return {"ok": True}
 
 
 @app.get("/runs/{run_id}")
