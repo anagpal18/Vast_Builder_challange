@@ -1,22 +1,40 @@
-"""Use Kenil's `memory/` package when it is importable, else the mock. MEMORY_BACKEND=mock forces the mock."""
+"""Pick the memory backend (MASTER 5 API).
+
+MEMORY_BACKEND=auto (default): Kenil's `memory/` package if importable → the VSS/GPU-backed memory when the team
+stack is configured (/config/<team>.config) → the ground-truth mock. Force one with `memory`, `vss` or `mock`.
+"""
 import logging
 
-from backend.config import MEMORY_BACKEND
+from backend import config as C
 
 log = logging.getLogger("almost.memory")
+FNS = ("verify_event", "store_event", "store_track_summaries", "similar_events", "similar_chunks", "get_event",
+       "list_events")
 
-memory = None
-if MEMORY_BACKEND != "mock":
+
+def _real():
     try:
-        import memory as _real  # noqa: F401  (Kenil's package at repo root)
-        for fn in ("verify_event", "store_event", "store_track_summaries", "similar_events",
-                   "similar_chunks", "get_event", "list_events"):
-            getattr(_real, fn)
-        memory = _real
-        log.info("memory: using real memory/ package")
+        import memory as m  # Kenil's package at repo root
+        for fn in FNS:
+            getattr(m, fn)
+        return m
     except (ImportError, AttributeError) as e:
-        log.info("memory: real package unavailable (%s), using mock", e)
-if memory is None:
-    from backend import memory_mock as memory  # noqa: F811
+        log.info("memory/: unavailable (%s)", e)
+        return None
 
-BACKEND_NAME = "mock" if memory.__name__.endswith("memory_mock") else "vast"
+
+def _choose():
+    mode = C.MEMORY_BACKEND
+    if mode in ("auto", "memory"):
+        m = _real()
+        if m:
+            return m, "vast"
+    if mode == "vss" or (mode == "auto" and (C.GPU_BEARER_TOKEN or C.VSS_URL)):
+        from backend import memory_vss
+        return memory_vss, "vss"
+    from backend import memory_mock
+    return memory_mock, "mock"
+
+
+memory, BACKEND_NAME = _choose()
+log.info("memory backend: %s", BACKEND_NAME)

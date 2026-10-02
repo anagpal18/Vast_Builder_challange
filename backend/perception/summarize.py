@@ -86,14 +86,43 @@ class Ground:
         return None
 
 
+def movement_from_heading(tr: Track, min_travel_m=6.0):
+    """No leg polygons (uncalibrated camera): classify by net heading change. X right, Y away from the
+    camera is right-handed, so a left turn is a counter-clockwise (positive) change."""
+    n = len(tr.t)
+    if n < 6:
+        return "unknown"
+    k = max(2, n // 4)
+    d0 = np.array([tr.gx[k] - tr.gx[0], tr.gy[k] - tr.gy[0]])
+    d1 = np.array([tr.gx[-1] - tr.gx[-1 - k], tr.gy[-1] - tr.gy[-1 - k]])
+    if np.hypot(*d0) < 1.0 or np.hypot(*d1) < 1.0 or np.hypot(tr.gx[-1] - tr.gx[0], tr.gy[-1] - tr.gy[0]) < min_travel_m:
+        return "unknown"
+    turn = np.degrees(np.arctan2(d0[0] * d1[1] - d0[1] * d1[0], d0 @ d1))
+    if abs(turn) < 30:
+        return "through"
+    if abs(turn) > 150:
+        return "u_turn"
+    if 50 <= turn <= 150:
+        return "left_turn"
+    if -150 <= turn <= -50:
+        return "right_turn"
+    return "unknown"
+
+
 def summarize_track(tr: Track, ground: Ground):
     entry = ground.leg_of(tr.gx[0], tr.gy[0]) or ground.nearest_leg(tr.gx[0], tr.gy[0])
     exit_ = ground.leg_of(tr.gx[-1], tr.gy[-1]) or ground.nearest_leg(tr.gx[-1], tr.gy[-1])
     in_cw = next((cw for x, y in zip(tr.gx[::3], tr.gy[::3]) if (cw := ground.crosswalk_of(x, y))), None)
     if tr.cls in VEHICLES:
         mv = movement_for(entry, exit_)
+        if mv == "unknown" and not ground.legs:
+            mv = movement_from_heading(tr)
     elif tr.cls == "bicycle" and movement_for(entry, exit_) not in ("unknown", "u_turn"):
         mv = movement_for(entry, exit_)
+    elif tr.cls == "bicycle" and not ground.legs:
+        mv = movement_from_heading(tr)
+    elif not ground.crosswalks and tr.cls == "person":
+        mv = "crossing"  # no crosswalk polygons drawn yet: treat people on the road as crossing
     else:
         mv = "crossing" if in_cw else "unknown"
     return {

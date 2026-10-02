@@ -1,12 +1,11 @@
 """Clip cutting (ffmpeg) and image-space overlays for the event theater (SHRESTH 1.4 steps 8-9)."""
 import logging
-import shutil
 import subprocess
 
 from backend.config import CLIPS_DIR, FOOTAGE_DIR, THUMBS_DIR
 
 log = logging.getLogger("almost.clips")
-FFMPEG = shutil.which("ffmpeg")
+from backend.ffmpeg import FFMPEG  # noqa: E402
 
 
 def clip_paths(event_id):

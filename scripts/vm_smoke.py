@@ -165,7 +165,7 @@ def main():
                         "content_range": r.headers.get("Content-Range"), "bytes": len(r.read())}
         step("stream", stream)
         for q in ("person close to a moving vehicle", "pedestrian crossing in front of a turning car"):
-            step(f"search::{q}", lambda q=q: {"r": trunc(post("/search", {"query": q, "top_k": 5, "llm_top_n": 0,
+            step(f"search::{q}", lambda q=q: {"r": trunc(post("/search", {"query": q, "top_k": 5, "llm_top_n": 1,
                                                                            "min_similarity": 0.2}), 3)})
 
     gpu = os.environ.get("GPU_HOST", "166.19.38.112")

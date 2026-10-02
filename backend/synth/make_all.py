@@ -124,10 +124,11 @@ def write_crash_clip(gt_rows):
     import subprocess
     crash = next((g for g in gt_rows if g.get("crash")), None)
     src = FOOTAGE_DIR / f"{crash['camera_id']}.mp4" if crash else None
-    if not crash or not src.exists() or not shutil.which("ffmpeg"):
+    from backend.ffmpeg import FFMPEG
+    if not crash or not src.exists() or not FFMPEG:
         return
     t0 = max(0.0, crash["t"] - 5)
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-ss", f"{t0:.3f}", "-t", "9",
+    subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", str(src), "-ss", f"{t0:.3f}", "-t", "9",
                     "-c:v", "libx264", "-bf", "0", "-preset", "veryfast", "-crf", "24", "-pix_fmt", "yuv420p",
                     "-an", "-movflags", "+faststart", str(FOOTAGE_DIR / "CRASH_A.mp4")], check=False)
 

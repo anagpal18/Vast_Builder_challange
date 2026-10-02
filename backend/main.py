@@ -87,7 +87,10 @@ def test_console():
 
 @app.get("/health")
 def health():
+    ingest = C.CACHE_DIR / "ingest_status.json"
     return {"ok": True, "memory_backend": BACKEND_NAME, "llm": C.LLM_MODEL if llm.enabled() else "template",
+            "vss": bool(C.VSS_URL), "gpu": bool(C.GPU_BEARER_TOKEN),
+            "ingest": json.loads(ingest.read_text()) if ingest.exists() else None,
             "weave_url": llm.WEAVE_URL, "cameras": len(load_cameras()),
             "tracks_ready": [c["camera_id"] for c in load_cameras() if (C.TRACKS_DIR / f"{c['camera_id']}.parquet").exists()]}
 
@@ -271,6 +274,8 @@ def put_calibration(camera_id: str, body: CalibrationBody):
         cam["ground"] = body.ground
     if body.camera_ground_xy is not None:
         cam["camera_ground_xy"] = body.camera_ground_xy
+    if body.points or body.homography:
+        cam["calibrated"] = True  # a human calibration now outranks autocal on re-ingest
     save_cameras(cams)
     recalibrated = False
     if raw_path(camera_id).exists():

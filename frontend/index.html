@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ALMOST</title>
+    <script>
+      // Behind a path prefix (k8s Ingress /app) relative asset URLs need a trailing slash: /app → /app/
+      if (!location.pathname.endsWith('/') && !/\.[a-z0-9]+$/i.test(location.pathname))
+        location.replace(location.pathname + '/' + location.search + location.hash)
+    </script>
   </head>
   <body class="bg-ink text-fog">
     <div id="root"></div>

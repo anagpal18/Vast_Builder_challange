@@ -1,5 +1,4 @@
 """Render simulated traffic-camera video and emit YOLO-style detections for each frame."""
-import shutil
 import subprocess
 
 import cv2
@@ -101,7 +100,7 @@ def render_camera(cam: Camera, actors, duration, fps, out_path, kind, night=Fals
     """Writes the mp4 and returns raw detection rows (camera-agnostic fields filled by caller)."""
     rng = np.random.default_rng(seed)
     bg = cam.background(ground_texture(kind, bike_lanes), night)
-    ff = shutil.which("ffmpeg")
+    from backend.ffmpeg import FFMPEG as ff
     proc = subprocess.Popen([ff, "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "bgr24",
                              "-s", f"{cam.w}x{cam.h}", "-r", str(fps), "-i", "-", "-c:v", "libx264",
                              "-preset", "veryfast", "-crf", "27", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
