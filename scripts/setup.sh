@@ -17,7 +17,7 @@ command -v curl >/dev/null || need+=(curl)
 if [ ${#need[@]} -gt 0 ]; then
   if command -v apt-get >/dev/null; then
     say "installing system packages: ${need[*]}"
-    $SUDO apt-get update -qq && $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${need[@]}"
+    $SUDO apt-get update -qq && $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${need[@]}"
   elif command -v brew >/dev/null; then
     brew install ffmpeg
   else
