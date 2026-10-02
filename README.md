@@ -3,18 +3,51 @@
 Implements `SHRESTH.md` against the contracts in `MASTER.md`. Runs end to end today on a simulated dataset,
 with Kenil's `memory/` package mocked until it lands.
 
-## Run
+## Deploy on the VM
+
+Linux VM (Ubuntu/Debian), from a fresh clone. Everything is idempotent; re-run after every `git pull`.
+
+```bash
+git clone https://github.com/anagpal18/Vast_Builder_challange.git almost && cd almost
+cp .env.example .env && nano .env        # set WANDB_API_KEY (agents fall back to templates without it)
+```
+
+**Option A: bare metal + systemd**
+```bash
+scripts/setup.sh              # ffmpeg, uv, Python 3.11 venv, deps, data, tests   (WITH_YOLO=1 for real footage)
+make service                  # systemd unit "almost": starts now and on boot
+journalctl -u almost -f       # logs
+# update:  git pull && scripts/setup.sh && sudo systemctl restart almost
+```
+
+**Option B: Docker**
+```bash
+docker compose up -d --build                                            # CPU
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build   # GPU + YOLO
+# update:  git pull && docker compose up -d --build
+```
+
+Then open `http://<vm-ip>:8000/` (mock test console) and point the frontend at `VITE_API_BASE=http://<vm-ip>:8000`.
+Open port 8000 in the VM firewall / security group. The first start generates the simulated dataset (~30–60 s);
+`data/` persists on disk across restarts and updates. The server must run as **one worker** (run state is in-process).
+
+| Command | What |
+|---|---|
+| `make data` | prepare whatever is missing (simulated data; YOLO for real cameras with footage) |
+| `make synthetic` | regenerate the simulated dataset |
+| `make yolo` | (re)run YOLO on every real camera (`data/footage/<CAM>.mp4` + entry in `cameras.json`) |
+| `make eval LABEL=...` | Weave evaluation → `/eval/latest` |
+| `make test` | tests |
+
+**Real footage:** copy `CAM_X.mp4` into `data/footage/`, add the camera to `data/config/cameras.json` (or use the
+calibration tool: `PUT /cameras/{id}/calibration`), install with `WITH_YOLO=1 scripts/setup.sh`, then `make yolo`.
+
+## Local dev
 
 ```bash
 uv venv --python 3.11 .venv && uv pip install --python .venv/bin/python -r requirements.txt
-.venv/bin/python -m backend.synth.make_all          # footage + tracks + ground truth (≈30 s)
-.venv/bin/uvicorn backend.main:app --port 8000      # API + mock test console at http://localhost:8000/
-.venv/bin/python -m backend.evals.run_eval --label "baseline"   # Weave eval → /eval/latest
-.venv/bin/pytest -q
+make data && make serve        # http://localhost:8000/
 ```
-
-Secrets live in `.env` (gitignored): `WANDB_API_KEY`, `WANDB_ENTITY`, `WANDB_PROJECT=almost`, `LLM_MODEL`.
-Without a key the agents fall back to deterministic templates, so the API works with zero env vars.
 
 ## Layout
 
