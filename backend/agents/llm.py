@@ -28,7 +28,8 @@ def init():
         log.warning("weave.init failed: %s", e)
     try:
         import openai
-        _client = openai.OpenAI(base_url=C.WANDB_BASE_URL, api_key=C.WANDB_API_KEY, project=project)
+        _client = openai.OpenAI(base_url=C.WANDB_BASE_URL, api_key=C.WANDB_API_KEY, project=project,
+                                timeout=45, max_retries=1)
     except Exception as e:
         log.warning("W&B Inference client unavailable: %s", e)
 
@@ -62,6 +63,13 @@ def _extract_json(text):
 
 @op(name="llm.chat_json")
 def chat_json(system, user, max_tokens=None, temperature=0.2, thinking=None):
+    """Recorded for replay: a dropped W&B connection answers from the last successful identical call."""
+    from backend import replay
+    return replay.call("wandb_llm", [C.LLM_MODEL, system, user], lambda: _chat_json(system, user, max_tokens,
+                                                                                    temperature, thinking))
+
+
+def _chat_json(system, user, max_tokens=None, temperature=0.2, thinking=None):
     """One JSON-mode completion. Raises on transport or parse errors (callers fall back).
     If reasoning eats the whole budget, retries once with reasoning off."""
     thinking = C.LLM_THINKING if thinking is None else thinking
@@ -74,7 +82,7 @@ def chat_json(system, user, max_tokens=None, temperature=0.2, thinking=None):
     choice = r.choices[0]
     if not choice.message.content:
         if thinking:
-            return chat_json(system, user, None, temperature, thinking=False)
+            return _chat_json(system, user, None, temperature, thinking=False)
         raise ValueError(f"empty content (finish_reason={choice.finish_reason})")
     return _extract_json(choice.message.content)
 

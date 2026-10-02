@@ -233,6 +233,7 @@ def to_event(m, camera_id, site_id, duration_s=None, fps=None):
 def measure_camera(camera_id, store, t_range=None, thresholds=None):
     """All pairs at one camera → (candidate events sorted by score, interactions measured)."""
     cam = get_camera(camera_id)
+    uncal = bool(cam.get("autocal")) and not cam.get("calibrated")
     entry = store.get(camera_id)
     trs = sorted(entry["tracks"].values(), key=lambda t: t.t[0])
     if t_range:
@@ -243,6 +244,8 @@ def measure_camera(camera_id, store, t_range=None, thresholds=None):
             if t2.t[0] > t1.t[-1] - C.MIN_OVERLAP_S:
                 break
             if t1.cls not in VEH and t2.cls not in VEH:
+                continue
+            if uncal and C.UNCALIBRATED_VULNERABLE_ONLY and t1.cls not in C.VULNERABLE and t2.cls not in C.VULNERABLE:
                 continue
             interactions += 1
             m = analyze_pair(t1, t2, thresholds)

@@ -85,10 +85,12 @@ class VSS:
     def me(self):
         return self.get("/auth/me")
 
-    def search(self, query, top_k=15, min_similarity=0.3, metadata_filters=None, llm_top_n=0, **extra):
-        body = {"query": query, "top_k": top_k, "min_similarity": min_similarity, "llm_top_n": llm_top_n,
+    def search(self, query, top_k=15, min_similarity=0.3, metadata_filters=None, llm_top_n=1, retries=5, **extra):
+        body = {"query": query, "top_k": top_k, "min_similarity": min_similarity, "llm_top_n": max(1, llm_top_n),
                 "metadata_filters": metadata_filters or {}, "include_public": True, **extra}
-        return self.post("/search", body)
+        from backend import replay
+        return replay.call("vss_search", [self.username, body],
+                           lambda: self._req("POST", "/search", retries=retries, json=body))
 
     def schema(self):
         return self.get("/metadata/schema")

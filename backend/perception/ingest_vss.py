@@ -52,7 +52,10 @@ def our_id(vss_cam):
 
 def _status(cam, **kw):
     st = json.loads(STATUS.read_text()) if STATUS.exists() else {}
-    st.setdefault(cam, {}).update(kw, updated=time.strftime("%H:%M:%S"))
+    cur = st.setdefault(cam, {})
+    if kw.get("state") and kw["state"] != "error":
+        cur.pop("error", None)
+    cur.update(kw, updated=time.strftime("%H:%M:%S"))
     STATUS.write_text(json.dumps(st, indent=1))
 
 

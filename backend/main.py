@@ -86,11 +86,16 @@ def test_console():
     return FileResponse(STATIC / "mock.html")
 
 
+def _replay_status():
+    from backend import replay
+    return replay.status()
+
+
 @app.get("/health")
 def health():
     ingest = C.CACHE_DIR / "ingest_status.json"
     return {"ok": True, "memory_backend": BACKEND_NAME, "llm": C.LLM_MODEL if llm.enabled() else "template",
-            "vss": bool(C.VSS_URL), "gpu": bool(C.GPU_BEARER_TOKEN),
+            "vss": bool(C.VSS_URL), "gpu": bool(C.GPU_BEARER_TOKEN), "replay": _replay_status(),
             "ingest": json.loads(ingest.read_text()) if ingest.exists() else None,
             "weave_url": llm.WEAVE_URL, "data_mode": C.DATA_MODE, "cameras": len(visible_cameras()),
             "tracks_ready": [c["camera_id"] for c in load_cameras() if (C.TRACKS_DIR / f"{c['camera_id']}.parquet").exists()]}

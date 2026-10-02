@@ -59,6 +59,10 @@ CLOSEST_APPROACH_M = 2.0
 OCCUPANCY_MARGIN_M = 0.5
 STATIONARY_SPEED_MPS = 1.0       # vehicles never faster than this are parked; ignored
 PET_CANDIDATE_S = 3.0
+# Uncalibrated (auto-calibrated) cameras: lanes are unknown and far-field depth is unreliable, so only pairs with
+# a vulnerable road user are measured, and detections beyond this ground range are dropped.
+UNCALIBRATED_VULNERABLE_ONLY = os.environ.get("UNCALIBRATED_VULNERABLE_ONLY", "1") == "1"
+UNCALIBRATED_MAX_RANGE_M = float(os.environ.get("UNCALIBRATED_MAX_RANGE_M", "45"))
 TTC_CANDIDATE_S = 2.0
 SEVERITY = [(1.0, "severe"), (2.0, "moderate"), (3.0, "low")]
 CLIP_PAD_S = 6.0

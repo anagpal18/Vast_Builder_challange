@@ -41,7 +41,19 @@
     "name": "San Francisco streets (VSS)",
     "camera_ids": [
       "CAM_SF4",
-      "CAM_SF1"
+      "CAM_SF1",
+      "CAM_SF2",
+      "CAM_SF3"
+    ],
+    "speed_limit_mph": 25,
+    "signalized": true,
+    "source": "vss"
+  },
+  {
+    "site_id": "SITE_NB",
+    "name": "Neighborhood street (VSS)",
+    "camera_ids": [
+      "CAM_NB1"
     ],
     "speed_limit_mph": 25,
     "signalized": true,

@@ -80,6 +80,13 @@ def calibrate_camera(camera_id):
     cam = get_camera(camera_id)
     raw = pd.read_parquet(raw_path(camera_id))
     df = to_ground(raw, cam["homography"], camera_ground_xy(cam))
+    if cam.get("autocal") and not cam.get("calibrated"):
+        from backend.config import UNCALIBRATED_MAX_RANGE_M
+        cx, cy = camera_ground_xy(cam)
+        near = np.hypot(df.gx - cx, df.gy - cy) <= UNCALIBRATED_MAX_RANGE_M
+        df = df[near]
+        span = df.groupby("track_id")["t"].agg(lambda s: s.max() - s.min())
+        df = df[df.track_id.isin(span[span >= 1.0].index)].reset_index(drop=True)
     df.to_parquet(tracks_path(camera_id), index=False)
     return df
 

@@ -1178,17 +1178,17 @@
     "height": 540,
     "homography": [
       [
-        -0.008349018942158564,
-        -0.0,
-        4.007529092236111
+        -0.008349018942158561,
+        -3.6566858531986333e-17,
+        4.007529092236131
       ],
       [
-        -0.0,
-        -0.0,
-        -6.941244000563328
+        3.795634272222755e-18,
+        -6.827834006316445e-17,
+        -6.941244000563321
       ],
       [
-        -0.0,
+        -4.963238570405031e-19,
         -0.004176371843056766,
         1.0
       ]
@@ -1203,7 +1203,7 @@
       0.0
     ],
     "lighting": "day",
-    "calibrated": false,
+    "calibrated": true,
     "autocal": {
       "method": "autocal-object-heights",
       "samples": 6838,
@@ -1274,6 +1274,174 @@
         "s3://team-28-vss-chunks/team-28/20261001_094126_sf1_chunk_0001.mp4",
         "s3://team-28-vss-chunks/team-28/20261001_094151_sf1_chunk_0002.mp4",
         "s3://team-28-vss-chunks/team-28/20261001_094216_sf1_chunk_0003.mp4"
+      ]
+    }
+  },
+  {
+    "camera_id": "CAM_SF2",
+    "site_id": "SITE_SF",
+    "label": "sf_streets_cam-2 \u00b7 san_francisco",
+    "video_url": "/media/footage/CAM_SF2.mp4",
+    "fps": 15,
+    "width": 960,
+    "height": 540,
+    "homography": [
+      [
+        -0.01153604858780129,
+        -0.0,
+        5.537303322144619
+      ],
+      [
+        -0.0,
+        -0.0,
+        -9.590890690874419
+      ],
+      [
+        -0.0,
+        -0.0038897240216052694,
+        1.0
+      ]
+    ],
+    "ground": {
+      "legs": {},
+      "crosswalks": [],
+      "box": []
+    },
+    "camera_ground_xy": [
+      0.0,
+      0.0
+    ],
+    "lighting": "day",
+    "calibrated": false,
+    "autocal": {
+      "method": "autocal-object-heights",
+      "samples": 24322,
+      "hfov_deg": 60.0,
+      "calibrated": false,
+      "horizon_row": 257.1,
+      "camera_height_m": 2.97,
+      "focal_px": 831.4
+    },
+    "vss": {
+      "camera_id": "sf_streets_cam-2",
+      "location": "san_francisco",
+      "chunks": [
+        "s3://team-28-vss-chunks/team-28/20261001_095126_sf2_chunk_0000.mp4",
+        "s3://team-28-vss-chunks/team-28/20261001_095151_sf2_chunk_0001.mp4",
+        "s3://team-28-vss-chunks/team-28/20261001_095217_sf2_chunk_0002.mp4",
+        "s3://team-28-vss-chunks/team-28/20261001_095242_sf2_chunk_0003.mp4"
+      ]
+    }
+  },
+  {
+    "camera_id": "CAM_SF3",
+    "site_id": "SITE_SF",
+    "label": "sf_streets_cam-3 \u00b7 san_francisco",
+    "video_url": "/media/footage/CAM_SF3.mp4",
+    "fps": 15,
+    "width": 960,
+    "height": 540,
+    "homography": [
+      [
+        -0.007291374697708923,
+        -0.0,
+        3.4998598549002833
+      ],
+      [
+        -0.0,
+        -0.0,
+        -6.061935088057931
+      ],
+      [
+        -0.0,
+        -0.003408702178489832,
+        1.0
+      ]
+    ],
+    "ground": {
+      "legs": {},
+      "crosswalks": [],
+      "box": []
+    },
+    "camera_ground_xy": [
+      0.0,
+      0.0
+    ],
+    "lighting": "day",
+    "calibrated": false,
+    "autocal": {
+      "method": "autocal-object-heights",
+      "samples": 23998,
+      "hfov_deg": 60.0,
+      "calibrated": false,
+      "horizon_row": 293.4,
+      "camera_height_m": 2.14,
+      "focal_px": 831.4
+    },
+    "vss": {
+      "camera_id": "sf_streets_cam-3",
+      "location": "san_francisco",
+      "chunks": [
+        "s3://team-28-vss-chunks/team-28/20261001_100418_sf3_chunk_0000.mp4",
+        "s3://team-28-vss-chunks/team-28/20261001_100443_sf3_chunk_0001.mp4",
+        "s3://team-28-vss-chunks/team-28/20261001_100508_sf3_chunk_0002.mp4",
+        "s3://team-28-vss-chunks/team-28/20261001_100534_sf3_chunk_0003.mp4"
+      ]
+    }
+  },
+  {
+    "camera_id": "CAM_NB1",
+    "site_id": "SITE_NB",
+    "label": "neighborhood_cam-1 \u00b7 neighborhood",
+    "video_url": "/media/footage/CAM_NB1.mp4",
+    "fps": 15,
+    "width": 960,
+    "height": 540,
+    "homography": [
+      [
+        -0.06239039441052762,
+        -0.0,
+        29.947389317053258
+      ],
+      [
+        -0.0,
+        -0.0,
+        -51.87039985118168
+      ],
+      [
+        -0.0,
+        -0.008456361855257818,
+        1.0
+      ]
+    ],
+    "ground": {
+      "legs": {},
+      "crosswalks": [],
+      "box": []
+    },
+    "camera_ground_xy": [
+      0.0,
+      0.0
+    ],
+    "lighting": "day",
+    "calibrated": false,
+    "autocal": {
+      "method": "autocal-object-heights",
+      "samples": 2646,
+      "hfov_deg": 60.0,
+      "calibrated": false,
+      "horizon_row": 118.3,
+      "camera_height_m": 7.38,
+      "focal_px": 831.4
+    },
+    "vss": {
+      "camera_id": "neighborhood_cam-1",
+      "location": "neighborhood",
+      "chunks": [
+        "s3://team-28-vss-chunks/team-28/20261001_073405_neighborhood_20260901_chunk_0025.mp4",
+        "s3://team-28-vss-chunks/team-28/20261001_073430_neighborhood_20260901_chunk_0026.mp4",
+        "s3://team-28-vss-chunks/team-28/20261001_073456_neighborhood_20260901_chunk_0027.mp4",
+        "s3://team-28-vss-chunks/team-28/20261001_073521_neighborhood_20260901_chunk_0028.mp4"
       ]
     }
   }

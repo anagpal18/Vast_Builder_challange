@@ -13,6 +13,7 @@ from pathlib import Path
 import httpx
 
 from backend import config as C
+from backend import replay
 
 log = logging.getLogger("almost.gpu")
 
@@ -52,10 +53,17 @@ def _json_from(text):
     return json.loads(m.group(0))
 
 
-def cosmos_video_json(prompt, video_path: Path, max_tokens=900, timeout=180):
-    """Ask Cosmos3-Reason about a clip; returns parsed JSON."""
+def cosmos_video_json(prompt, video_path: Path, max_tokens=900, timeout=90):
+    """Ask Cosmos3-Reason about a clip; returns parsed JSON. Recorded for replay (backend/replay.py)."""
+    vp = Path(video_path)
+    return replay.call("cosmos3_reason", [prompt, vp.name, vp.stat().st_size, max_tokens],
+                       lambda: _cosmos_video_json(prompt, vp, max_tokens, timeout))
+
+
+def _cosmos_video_json(prompt, video_path: Path, max_tokens, timeout):
     b64 = base64.b64encode(Path(video_path).read_bytes()).decode()
-    body = {"model": model_id(C.COSMOS3_REASON_URL), "max_tokens": max_tokens, "temperature": 0.1,
+    body = {"model": _model_or(C.COSMOS3_REASON_URL, "nvidia/cosmos3-nano-reasoner"), "max_tokens": max_tokens,
+            "temperature": 0.1,
             "messages": [{"role": "user", "content": [
                 {"type": "video_url", "video_url": {"url": f"data:video/mp4;base64,{b64}"}},
                 {"type": "text", "text": prompt}]}]}
@@ -65,16 +73,28 @@ def cosmos_video_json(prompt, video_path: Path, max_tokens=900, timeout=180):
     return _json_from(msg.get("content") or msg.get("reasoning_content") or "")
 
 
+def _model_or(base, fallback):
+    try:
+        return model_id(base)
+    except Exception:
+        return fallback
+
+
 def embed_text(texts):
     """Cosmos Embed1 text vectors (256-d), one per input. Query mode takes one item per request."""
     texts = [texts] if isinstance(texts, str) else list(texts)
-    model = model_id(C.COSMOS_EMBED1_URL)
+    try:
+        model = model_id(C.COSMOS_EMBED1_URL)
+    except Exception:
+        model = "nvidia/cosmos-embed1"  # offline: the recording key only needs a stable id
     out = []
     for t in texts:
-        r = httpx.post(f"{C.COSMOS_EMBED1_URL}/v1/embeddings", headers=_h(), timeout=60,
-                       json={"model": model, "input": t, "request_type": "query", "encoding_format": "float"})
-        r.raise_for_status()
-        out.append(r.json()["data"][0]["embedding"])
+        def live(t=t):
+            r = httpx.post(f"{C.COSMOS_EMBED1_URL}/v1/embeddings", headers=_h(), timeout=30,
+                           json={"model": model, "input": t, "request_type": "query", "encoding_format": "float"})
+            r.raise_for_status()
+            return r.json()["data"][0]["embedding"]
+        out.append(replay.call("embed1", [model, t], live))
     return out
 
 

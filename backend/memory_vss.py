@@ -140,25 +140,32 @@ def similar_chunks(text: str, k: int = 10, site_id=None) -> list:
         return []
     mapping = _vss_to_ours()
     cams = [c for c in load_cameras() if c.get("vss") and (site_id is None or c["site_id"] == site_id)]
-    out = []
-    for cam in cams:
+
+    def one(cam):  # cameras searched in parallel: each search is a round trip through the tunnel
         vid = cam["vss"]["camera_id"]
         try:
-            r = vss.search(text, top_k=k, min_similarity=0.25, llm_top_n=1, metadata_filters={"camera_id": vid})
+            r = vss.search(text, top_k=k, min_similarity=0.25, llm_top_n=1, metadata_filters={"camera_id": vid},
+                           retries=2)
         except Exception as e:
             log.warning("vss search failed: %s", e)
-            continue
+            return []
         ours, offsets = mapping.get(vid, (cam["camera_id"], {}))
+        hits = []
         for hit in rows(r, "results"):
             ov = pick(hit, "original_video")
             if ov not in offsets:
                 continue  # outside the window we ingested
             t0 = offsets[ov] + float(pick(hit, "segment_start_sec", "best_match_start_sec", default=0.0))
             t1 = offsets[ov] + float(pick(hit, "segment_end_sec", "best_match_end_sec", default=t0 - offsets[ov] + 5))
-            out.append({"chunk": {"chunk_id": pick(hit, "source"), "camera_id": ours, "site_id": cam["site_id"],
-                                  "t_start": t0, "t_end": t1, "caption": pick(hit, "reasoning_content", default=""),
-                                  "clip_url": None, "thumb_url": None},
-                        "score": float(pick(hit, "similarity_score", default=0.0))})
+            hits.append({"chunk": {"chunk_id": pick(hit, "source"), "camera_id": ours, "site_id": cam["site_id"],
+                                   "t_start": t0, "t_end": t1, "caption": pick(hit, "reasoning_content", default=""),
+                                   "clip_url": None, "thumb_url": None},
+                         "score": float(pick(hit, "similarity_score", default=0.0))})
+        return hits
+    import contextvars
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=max(1, len(cams))) as ex:
+        out = [h for hs in ex.map(lambda c: contextvars.copy_context().run(one, c), cams) for h in hs]
     return sorted(out, key=lambda r: -r["score"])[:k]
 
 
