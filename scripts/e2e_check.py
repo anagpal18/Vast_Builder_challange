@@ -27,12 +27,12 @@ def check(name, ok, **facts):
     return ok
 
 
-async def run_investigation(base, client, timeout):
+async def run_investigation(base, client, timeout, live=False):
     ws_url = base.replace("http", "ws", 1) + "/ws"
     types, stages, verdicts = collections.Counter(), {}, collections.Counter()
     t0 = time.time()
     async with websockets.connect(ws_url, max_size=50_000_000, open_timeout=30) as ws:
-        r = client.post("/investigate", json={})
+        r = client.post("/investigate" + ("?live=true" if live else ""), json={})
         if r.status_code != 200:
             return check("investigate_post", False, status=r.status_code, body=r.text[:300]), None
         run_id = r.json()["run_id"]
@@ -55,6 +55,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", required=True)
     ap.add_argument("--timeout", type=float, default=1500)
+    ap.add_argument("--live", action="store_true", help="force a live run (default replays the recorded run)")
     args = ap.parse_args()
     base = args.base.rstrip("/")
     c = httpx.Client(base_url=base, timeout=120, follow_redirects=True)
@@ -72,7 +73,7 @@ def main():
     feeds = {x["camera_id"]: c.head("/media" + x["video_url"].removeprefix("/media")).status_code for x in cams}
     check("feeds_playable", all(v == 200 for v in feeds.values()), status=feeds)
 
-    ok, run_id = asyncio.run(run_investigation(base, c, args.timeout))
+    ok, run_id = asyncio.run(run_investigation(base, c, args.timeout, args.live))
     if run_id:
         run = c.get(f"/runs/{run_id}").json()
         check("run_done", run["status"] == "done", status=run["status"], error=run.get("error"),

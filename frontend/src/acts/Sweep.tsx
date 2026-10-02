@@ -64,12 +64,12 @@ function Hero({ cameras, siteCount, idle, onStart }: { cameras: Camera[]; siteCo
             <span className="size-1.5 rounded-full bg-accept shadow-[0_0_8px_var(--color-accept)]" />
             {real ? 'VAST video archive' : 'Simulated footage'}
           </span>
-          {['NVIDIA Cosmos', 'YOLO11', 'W&B Weave'].map((t) => (
+          {['NVIDIA Cosmos3-Reason', 'NVIDIA Cosmos Embed1', 'YOLO11', 'W&B Nemotron · Weave'].map((t) => (
             <span key={t} className="rounded border border-line px-1.5 py-0.5 tracking-wider">{t}</span>
           ))}
         </div>
         <h1 className="mt-2 text-[2.1rem] font-black leading-[1.05] tracking-tight">
-          Every crossing on every camera. <span className="text-brand">The ones that almost happened.</span>
+          Every crossing, every camera. <span className="text-brand">Catch the near misses before they become crashes.</span>
         </h1>
         <div className="mt-1.5 font-mono text-sm text-mute">
           {cameras.length} cameras · {siteCount} sites{minutes > 0 ? ` · ${minutes.toFixed(minutes < 10 ? 1 : 0)} min of footage` : ''}
@@ -84,8 +84,8 @@ function Hero({ cameras, siteCount, idle, onStart }: { cameras: Camera[]; siteCo
           whileTap={{ scale: 0.97 }}
           className="shrink-0 rounded-2xl border border-brand/60 bg-brand/10 px-8 py-4 text-left shadow-[0_0_60px_rgba(255,107,61,0.25)]"
         >
-          <div className="text-2xl font-black tracking-tight text-brand">FIND THE ALMOSTS</div>
-          <div className="mt-0.5 text-xs text-mute">Scan · measure · verify with NVIDIA · find the pattern</div>
+          <div className="text-2xl font-black tracking-tight text-brand">SCAN FOR NEAR MISSES</div>
+          <div className="mt-0.5 text-xs text-mute">Scan · measure · verify with NVIDIA Cosmos3-Reason · find the pattern</div>
         </motion.button>
       )}
     </div>
@@ -162,7 +162,7 @@ function VerdictTicker() {
   const verdicts = useRun((s) => s.verdicts)
   return (
     <aside className="flex w-[25rem] shrink-0 flex-col rounded-lg border border-line bg-panel">
-      <div className="border-b border-line px-4 py-2.5 text-xs uppercase tracking-widest text-mute">NVIDIA verification</div>
+      <div className="border-b border-line px-4 py-2.5 text-xs uppercase tracking-widest text-mute">NVIDIA Cosmos3-Reason verification</div>
       <div className="min-h-0 flex-1 overflow-hidden px-3 py-2">
         {verdicts.length === 0 && <div className="px-1 py-2 text-sm text-mute">Waiting for candidates…</div>}
         <AnimatePresence initial={false}>
@@ -229,11 +229,23 @@ function Collapse({ ranked, events, cameras, siteName }: { ranked: AlmostEvent[]
                 <SeverityDot severity={e.severity} />
                 {CONFLICT_LABEL[e.conflict_type]}
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono text-3xl font-bold tabular">{e.pet_s.toFixed(1)}</span>
-                <span className="text-sm text-mute">seconds apart</span>
-              </div>
-              <MarginBar pet={e.pet_s} severity={e.severity} />
+              {e.pet_s < 0.05 && e.closest_m != null ? (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-mono text-3xl font-bold tabular">{e.closest_m.toFixed(1)}</span>
+                    <span className="text-sm text-mute">meters apart, same moment</span>
+                  </div>
+                  <MarginBar pet={Math.min(3, e.closest_m)} severity={e.severity} />
+                </>
+              ) : (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-mono text-3xl font-bold tabular">{e.pet_s.toFixed(1)}</span>
+                    <span className="text-sm text-mute">seconds apart</span>
+                  </div>
+                  <MarginBar pet={e.pet_s} severity={e.severity} />
+                </>
+              )}
               <div className="text-xs text-mute">{siteName(e.site_id)}</div>
             </div>
           </motion.button>
@@ -241,7 +253,7 @@ function Collapse({ ranked, events, cameras, siteName }: { ranked: AlmostEvent[]
       </div>
       {(rejected.length > 0 || unsure.length > 0) && (
         <div className="mt-6 rounded-xl border border-line bg-panel/60 p-4">
-          <div className="mb-2 text-xs uppercase tracking-widest text-mute">We don't trust geometry alone · flagged by measurement, ruled out or held by NVIDIA</div>
+          <div className="mb-2 text-xs uppercase tracking-widest text-mute">We don't trust geometry alone · flagged by measurement, ruled out by NVIDIA Cosmos3-Reason</div>
           <div className="flex flex-wrap gap-2">
             {[...unsure, ...rejected].map((e) => (
               <button key={e.event_id} onClick={() => go(`#/event/${e.event_id}`)} className="flex items-center gap-2 rounded-md border border-line px-2.5 py-1.5 text-sm hover:border-mute">

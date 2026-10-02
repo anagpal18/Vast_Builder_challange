@@ -1444,5 +1444,59 @@
         "s3://team-28-vss-chunks/team-28/20261001_073521_neighborhood_20260901_chunk_0028.mp4"
       ]
     }
+  },
+  {
+    "camera_id": "CAM_PIE3",
+    "site_id": "SITE_PIE",
+    "label": "Toronto dashcam",
+    "video_url": "/media/footage/CAM_PIE3.mp4",
+    "fps": 15,
+    "width": 960,
+    "height": 540,
+    "homography": [
+      [
+        0.04096734892787524,
+        0.0,
+        -19.664327485380117
+      ],
+      [
+        0.0,
+        0.0,
+        34.05961430135151
+      ],
+      [
+        0.0,
+        0.000925925925925926,
+        1.0
+      ]
+    ],
+    "ground": {
+      "legs": {},
+      "crosswalks": [],
+      "box": []
+    },
+    "camera_ground_xy": [
+      0.0,
+      0.0
+    ],
+    "lighting": "day",
+    "calibrated": false,
+    "autocal": {
+      "method": "autocal-object-heights",
+      "samples": 4719,
+      "hfov_deg": 60.0,
+      "calibrated": false,
+      "fallback": true,
+      "horizon_row": -1080.0,
+      "camera_height_m": 44.24,
+      "focal_px": 831.4
+    },
+    "vss": {
+      "camera_id": "pie_cam-3",
+      "location": "toronto",
+      "chunks": [
+        "s3://team-28-vss-chunks/team-28/20261001_072155_set06_video_chunk_0027.mp4"
+      ]
+    }
   }
 ]

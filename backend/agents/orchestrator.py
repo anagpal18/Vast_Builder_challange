@@ -32,7 +32,9 @@ class Run:
     """Runs synchronously in a worker thread (one Weave trace tree); `emit` must be thread-safe."""
 
     def __init__(self, run_id, site_ids, emit):
-        self.run_id, self.emit = run_id, emit
+        self.run_id, self._emit_raw, self._t0 = run_id, emit, time.time()
+        self.recording = []
+        self._explicit_sites = bool(site_ids)
         sites = load_sites() if site_ids else visible_sites()  # explicit ids (eval) may name hidden sites
         self.sites = {s["site_id"]: s for s in sites if not site_ids or s["site_id"] in site_ids}
         cam_ids = {i for s in self.sites.values() for i in s["camera_ids"]}
@@ -46,6 +48,10 @@ class Run:
                     "event_ids": [], "pattern_ids": [], "started_at": _now(), "memory_backend": BACKEND_NAME,
                     "llm": None}
         STATE.runs[run_id] = self.rec
+
+    def emit(self, msg):
+        self.recording.append((round(time.time() - self._t0, 3), msg))
+        self._emit_raw(msg)
 
     def stage(self, name, status, progress=None):
         st = self.rec["stages"][name]
@@ -67,6 +73,8 @@ class Run:
             self.rec["weave_url"] = llm.WEAVE_URL
             investigate(self, list(self.sites))
             self.rec["status"] = "done"
+            if not self._explicit_sites:
+                save_recording(self)
         except Exception as e:
             log.exception("run %s failed", self.run_id)
             self.rec["status"] = "error"
@@ -130,6 +138,8 @@ class Run:
     @staticmethod
     def _decide(ev, v):
         """Real footage gets a decision, never UNSURE: if the model hedges, the measurement decides."""
+        if v.get("model") == "cosmos3-reason":  # older recordings used the family name
+            v = {**v, "model": "nvidia/cosmos3-nano-reasoner"}
         if v.get("verdict") != "UNSURE" or "sim" in get_camera(ev["camera_id"]):
             return v
         accept = ev["pet_s"] < 1.0 or (ev.get("min_ttc_s") is not None and ev["min_ttc_s"] < 1.0)
@@ -276,3 +286,82 @@ def build_report(site, patterns, events):
 
 def _now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+# ---- recorded runs: FIND THE ALMOSTS replays the last successful live run (smooth, offline-safe) ---------------
+
+def _recording_path():
+    return C.CACHE_DIR / f"run_recording_{C.DATA_MODE}.json"
+
+
+def save_recording(run):
+    """Message stream + final results of a successful default-scope run."""
+    sites = list(run.sites)
+    data = {"recorded_at": _now(), "run_id": run.run_id, "sites": sites, "counts": dict(run.counts),
+            "stages": run.rec["stages"], "messages": json.loads(json.dumps(run.recording, default=str)),
+            "events": {k: v for k, v in STATE.events.items() if v["site_id"] in sites},
+            "patterns": {k: v for k, v in STATE.patterns.items() if v["site_id"] in sites},
+            "reports": {k: v for k, v in STATE.reports.items() if k in sites}}
+    _recording_path().write_text(json.dumps(data, default=str))
+    log.info("recorded run %s (%d messages)", run.run_id, len(run.recording))
+
+
+def has_recording():
+    return _recording_path().exists()
+
+
+class ReplayRun:
+    """Plays a recorded run back over the WebSocket with its stage rhythm, compressed to ~TARGET_S seconds."""
+    TARGET_S = 20.0
+    MAX_GAP_S = 1.2
+
+    def __init__(self, run_id, emit):
+        self.run_id, self.emit = run_id, emit
+        self.data = json.loads(_recording_path().read_text())
+        self.rec = {"run_id": run_id, "status": "running", "site_ids": self.data["sites"], "replay_of":
+                    self.data["run_id"], "recorded_at": self.data["recorded_at"],
+                    "stages": {s: {"status": "pending"} for s in STAGES}, "counts": dict(self.data["counts"]),
+                    "event_ids": [], "pattern_ids": [], "started_at": _now(), "memory_backend": BACKEND_NAME,
+                    "llm": C.LLM_MODEL, "mode": "replay"}
+        STATE.runs[run_id] = self.rec
+
+    def go(self):
+        msgs = self.data["messages"]
+        span = (msgs[-1][0] - msgs[0][0]) if msgs else 1.0
+        scale = min(1.0, self.TARGET_S / max(span, 1e-6))
+        prev = msgs[0][0] if msgs else 0.0
+        try:
+            for t, m in msgs:
+                time.sleep(min(self.MAX_GAP_S, max(0.0, (t - prev) * scale)))
+                prev = t
+                m = dict(m)
+                if "run_id" in m:
+                    m["run_id"] = self.run_id
+                if m.get("type") == "run.stage":
+                    st = self.rec["stages"][m["stage"]]
+                    st["status"] = m["status"]
+                    if m["status"] == "done":
+                        st["elapsed_s"] = self.data["stages"].get(m["stage"], {}).get("elapsed_s")
+                if m.get("type") == "run.done":
+                    self._restore()
+                    self.rec["status"] = "done"
+                    m["status"] = "done"
+                self.emit(m)
+        except Exception as e:
+            log.exception("replay failed")
+            self.rec.update(status="error", error=str(e))
+            self.emit({"type": "run.done", "run_id": self.run_id, "status": "error"})
+        finally:
+            self.rec["finished_at"] = _now()
+            STATE.save()
+
+    def _restore(self):
+        d = self.data
+        with STATE.lock:
+            STATE.events = {k: v for k, v in STATE.events.items() if v["site_id"] not in d["sites"]}
+            STATE.patterns = {k: v for k, v in STATE.patterns.items() if v["site_id"] not in d["sites"]}
+            STATE.events.update(d["events"])
+            STATE.patterns.update(d["patterns"])
+            STATE.reports.update(d["reports"])
+        self.rec["event_ids"] = sorted(d["events"], key=lambda k: -d["events"][k]["score"])
+        self.rec["pattern_ids"] = list(d["patterns"])

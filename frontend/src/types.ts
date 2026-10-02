@@ -117,6 +117,8 @@ export interface AlmostEvent {
   pet_s: number
   /** null when the two never close in on each other at constant velocity */
   min_ttc_s: number | null
+  /** closest center-to-center distance in meters during the interaction (backend extension) */
+  closest_m?: number
   first_through: 'a' | 'b'
   severity: Severity
   score: number

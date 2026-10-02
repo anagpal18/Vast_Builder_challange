@@ -138,7 +138,15 @@ def order_pair(t1, t2):
     return t1, t2
 
 
-def analyze_pair(t1, t2, thresholds=None):
+def zone_radius(cls, tight):
+    """Occupancy zone around the crossing point. tight (real, uncalibrated cameras): the body's own half-width
+    plus 0.5 m, so two road users only 'overlap' when their bodies would actually meet."""
+    if tight:
+        return C.DIMS_M.get(cls, (1.0, 1.0))[1] / 2
+    return C.RADIUS_M.get(cls, 1.0)
+
+
+def analyze_pair(t1, t2, thresholds=None, tight=False):
     """Full measurement for one pair. Returns a dict of metrics (candidate or not) or None if not comparable."""
     th = thresholds or {"pet": C.PET_CANDIDATE_S, "ttc": C.TTC_CANDIDATE_S}
     if t1.cls not in VEH and t2.cls not in VEH:
@@ -165,8 +173,8 @@ def analyze_pair(t1, t2, thresholds=None):
         P = ((pa.x + pb.x) / 2, (pa.y + pb.y) / 2)
 
     ra, rb = C.RADIUS_M.get(a.cls, 1.0), C.RADIUS_M.get(b.cls, 1.0)
-    ea, xa, ia = occupancy(a, P, ra)
-    eb, xb, ib = occupancy(b, P, rb)
+    ea, xa, ia = occupancy(a, P, zone_radius(a.cls, tight))
+    eb, xb, ib = occupancy(b, P, zone_radius(b.cls, tight))
     heading_diff = _angle_diff(_heading_at(a, ia), _heading_at(b, ib))
     rear_end = a.cls in VEH and b.cls in VEH and heading_diff < 20
 
@@ -174,8 +182,17 @@ def analyze_pair(t1, t2, thresholds=None):
         first, (e1, x1), (e2, x2) = "a", (ea, xa), (eb, xb)
     else:
         first, (e1, x1), (e2, x2) = "b", (eb, xb), (ea, xa)
-    pet = 0.0 if e2 <= x1 else e2 - x1
+    if e2 > x1:
+        pet = e2 - x1
+    elif tight:
+        # windows overlap (e.g. a pedestrian standing near the spot while a car passes): on uncalibrated real
+        # footage use the gap between the two closest passes through the point; 0 only if they truly coincide
+        pet = abs(float(a.t[ia]) - float(b.t[ib]))
+    else:
+        pet = 0.0
 
+    tt = np.arange(o0, o1, 0.1)
+    closest = float(np.min(np.hypot(*(np.subtract(_interp(a, tt)[:2], _interp(b, tt)[:2]))))) if len(tt) else None
     w0 = max(o0, min(ea, eb) - 5.0)
     w1 = min(o1, max(xa, xb) + 1.0)
     ttc, ttc_t = min_ttc(a, b, w0, w1, ra, rb) if w1 > w0 else (None, None)
@@ -202,6 +219,7 @@ def analyze_pair(t1, t2, thresholds=None):
         "occupancy": {"a": [ea, xa], "b": [eb, xb]},
         "speed_a": robust_speed(a, ia), "speed_b": robust_speed(b, ib),
         "heading_diff": round(float(heading_diff), 1),
+        "closest_m": None if closest is None else round(closest, 2),
         "conflict_type": ctype,
         "severity": severity(pet),
         "score": score(pet, ttc, b.cls in C.VULNERABLE),
@@ -232,6 +250,7 @@ def to_event(m, camera_id, site_id, duration_s=None, fps=None):
         "conflict_type": m["conflict_type"],
         "conflict_point": [round(m["P"][0], 2), round(m["P"][1], 2)],
         "pet_s": m["pet_s"], "min_ttc_s": m["min_ttc_s"], "first_through": m["first_through"],
+        "closest_m": m.get("closest_m"),
         "severity": m["severity"], "score": m["score"],
         "verification": None, "pattern_id": None, "status": "candidate",
     }
@@ -255,7 +274,7 @@ def measure_camera(camera_id, store, t_range=None, thresholds=None):
             if uncal and C.UNCALIBRATED_VULNERABLE_ONLY and t1.cls not in C.VULNERABLE and t2.cls not in C.VULNERABLE:
                 continue
             interactions += 1
-            m = analyze_pair(t1, t2, thresholds)
+            m = analyze_pair(t1, t2, thresholds, tight=uncal)
             if not m or not m["candidate"]:
                 continue
             ev = to_event(m, camera_id, cam["site_id"], entry["duration_s"], cam.get("fps"))

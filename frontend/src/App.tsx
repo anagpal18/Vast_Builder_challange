@@ -4,6 +4,7 @@ import { useConfig } from './data/hooks.ts'
 import { USE_MOCK } from './data/api.ts'
 import { StageRibbon } from './components/bits.tsx'
 import EvalPanel from './components/EvalPanel.tsx'
+import LiveStatus from './components/LiveStatus.tsx'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
 import Sweep from './acts/Sweep.tsx'
 import Theater from './acts/Theater.tsx'
@@ -34,7 +35,7 @@ export default function App() {
     <div className="flex h-full flex-col">
       <header className="no-print flex h-16 shrink-0 items-center gap-4 overflow-hidden px-5">
         <button onClick={() => go('#/')} className="flex items-baseline gap-2">
-          <span className="text-2xl font-black tracking-tight">ALMOST</span>
+          <span className="text-2xl font-black tracking-tight">LOOKOUT</span>
           <span className="size-2 rounded-full bg-brand shadow-[0_0_12px_var(--color-brand)]" />
         </button>
         {phase !== 'idle' && <StageRibbon stages={stages} current={stage} />}
@@ -49,6 +50,13 @@ export default function App() {
               {s.name.replace(' (simulated)', '')}
             </button>
           ))}
+          <button
+            onClick={() => { useRun.getState().reset(); go('#/') }}
+            className="mr-1 flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1.5 text-fog hover:border-brand hover:text-brand"
+            title="Back to the camera wall, ready for a new investigation"
+          >
+            <span aria-hidden>↺</span> Restart
+          </button>
           <button onClick={() => go(`#/calibrate/${config?.cameras[0]?.camera_id ?? ''}`)} className={`rounded-md px-2.5 py-1.5 hover:bg-panel-2 ${route.name === 'calibrate' ? 'bg-panel-2 text-fog' : 'text-mute'}`}>
             Calibrate
           </button>
@@ -64,6 +72,7 @@ export default function App() {
         </ErrorBoundary>
       </main>
       {route.name !== 'calibrate' && <EvalPanel />}
+      <LiveStatus />
     </div>
   )
 }

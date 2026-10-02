@@ -81,7 +81,8 @@ def group_events(verified, similar_map=None, all_events=None):
 def _template(key, events, facts, site):
     site_id, ctype, mv, leg = key
     ids = [e["event_id"] for e in events]
-    sig = f"{MOVE_WORDS.get(mv, mv)} vehicles from the {LEG_WORDS.get(leg, leg or '?')} leg vs {B_WORDS.get(ctype, 'road users')}"
+    origin = f" from the {LEG_WORDS.get(leg, leg)} leg" if leg else ""
+    sig = f"{MOVE_WORDS.get(mv, mv or 'unclassified').capitalize()} vehicles{origin} vs {B_WORDS.get(ctype, 'road users')}"
     worst = min(events, key=lambda e: e["pet_s"])
     parts = [f"{len(events)} verified close calls ({', '.join(ids)})."]
     parts.append(f"Closest margin {worst['pet_s']:.1f} s ({worst['event_id']}).")

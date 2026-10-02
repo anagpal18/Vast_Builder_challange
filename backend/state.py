@@ -15,7 +15,9 @@ class State:
             try:
                 d = json.loads(_PATH.read_text())
                 self.events, self.patterns, self.reports = d["events"], d["patterns"], d["reports"]
-                self.runs = {k: {**v, "status": v.get("status", "done")} for k, v in d.get("runs", {}).items()}
+                # a run that was in flight when the server stopped will never finish: don't let it block new runs
+                self.runs = {k: {**v, "status": "interrupted" if v.get("status", "done") == "running" else v.get("status", "done")}
+                             for k, v in d.get("runs", {}).items()}
             except (json.JSONDecodeError, KeyError):
                 pass
 

@@ -58,5 +58,15 @@
     "speed_limit_mph": 25,
     "signalized": true,
     "source": "vss"
+  },
+  {
+    "site_id": "SITE_PIE",
+    "name": "Toronto drives",
+    "camera_ids": [
+      "CAM_PIE3"
+    ],
+    "speed_limit_mph": 30,
+    "signalized": true,
+    "source": "vss"
   }
 ]

@@ -27,14 +27,14 @@ export default function Report({ siteId }: { siteId: string }) {
       <article className="mx-auto max-w-6xl space-y-6 px-6 pb-24 print:max-w-none print:px-0">
         <header className="flex items-end justify-between gap-6 border-b border-line pb-4 print-plain">
           <div>
-            <div className="text-xs uppercase tracking-widest text-mute">ALMOST site report</div>
+            <div className="text-xs uppercase tracking-widest text-mute">LOOKOUT site report</div>
             <h1 className="text-4xl font-black tracking-tight">{r.site.name}</h1>
             <div className="mt-1 text-sm text-mute">
               {r.site.signalized ? 'Signalized' : 'Unsignalized'} · {r.site.speed_limit_mph} mph limit · cameras {r.site.camera_ids.join(', ')} · generated {new Date(r.generated_at).toLocaleString()}
             </div>
           </div>
           <div className="no-print flex gap-2">
-            <a href={api.reportMarkdownUrl(siteId)} download={`ALMOST_${siteId}.md`} className="rounded-lg border border-line px-4 py-2 text-sm hover:border-fog">
+            <a href={api.reportMarkdownUrl(siteId)} download={`LOOKOUT_${siteId}.md`} className="rounded-lg border border-line px-4 py-2 text-sm hover:border-fog">
               Export Markdown
             </a>
             <button onClick={() => window.print()} className="rounded-lg bg-fog px-4 py-2 text-sm font-semibold text-ink hover:brightness-95">

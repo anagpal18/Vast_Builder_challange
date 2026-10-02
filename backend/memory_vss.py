@@ -12,6 +12,7 @@ import threading
 
 import numpy as np
 
+from backend import config as C
 from backend import memory_mock as _local
 from backend.config import CACHE_DIR
 from backend.perception.camera import get_camera, load_cameras
@@ -23,7 +24,7 @@ _VEC_PATH = CACHE_DIR / "vss_vectors.json"
 _VECS: dict = json.loads(_VEC_PATH.read_text()) if _VEC_PATH.exists() else {}
 _LOCK = threading.Lock()
 
-MODEL_NAME = "cosmos3-reason"
+MODEL_NAME = "nvidia/cosmos3-nano-reasoner"  # replaced by the id the endpoint reports
 VERIFY_PROMPT = """You are verifying a possible traffic near miss in this street-camera clip for a road-safety review.
 Our trajectory measurement says: a {a_cls} ({a_mv}, about {a_speed:.1f} m/s) and a {b_cls} ({b_mv}) pass through the
 same spot {pet:.1f} s apart (post-encroachment time) at about {tc:.1f} s into the clip; the {first} goes through first.
@@ -81,7 +82,9 @@ def verify_event(event: dict, clip_path: str) -> dict:
                                   b_mv=(event["b"].get("movement") or "").replace("_", " "), pet=event["pet_s"],
                                   tc=event["t_conflict"] - event["clip"]["t0"], first=first)
     try:
-        return _normalize(gpu.cosmos_video_json(prompt, clip_path), cam)
+        out = _normalize(gpu.cosmos_video_json(prompt, clip_path), cam)
+        out["model"] = gpu._model_or(C.COSMOS3_REASON_URL, MODEL_NAME)
+        return out
     except Exception as e:
         log.warning("cosmos verify %s failed: %s", event["event_id"], e)
         return _normalize({"verdict": "UNSURE", "reason": f"Cosmos3-Reason call failed: {type(e).__name__}.",

@@ -654,7 +654,7 @@ function VerdictPanel({ ev }: { ev: EventDetail }) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-line bg-panel p-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-widest text-mute">NVIDIA verdict</span>
+        <span className="text-xs uppercase tracking-widest text-mute">NVIDIA Cosmos3-Reason verdict{v?.model ? ` · ${v.model.replace(/^nvidia\//, "")}` : ""}</span>
         {v && <span className="font-mono text-xs text-mute">confidence {(v.confidence * 100).toFixed(0)}%</span>}
       </div>
       {v ? (
@@ -689,7 +689,7 @@ function VerdictPanel({ ev }: { ev: EventDetail }) {
       </div>
       <MarginBar pet={ev.pet_s} severity={ev.severity} big />
       <div className="text-[11px] text-mute">
-        {CONFLICT_LABEL[ev.conflict_type]} · Verified by NVIDIA Cosmos · Tracked by YOLO · Stored in VAST
+        {CONFLICT_LABEL[ev.conflict_type]} · Verified by NVIDIA Cosmos3-Reason · Embedded by NVIDIA Cosmos Embed1 · Tracked by YOLO11 · Stored in VAST
       </div>
     </div>
   )

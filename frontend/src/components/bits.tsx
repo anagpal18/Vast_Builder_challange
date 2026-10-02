@@ -97,7 +97,7 @@ const COUNTERS: { key: keyof RunCounts; label: string; decimals?: number; tone?:
   { key: 'road_users', label: 'road users tracked' },
   { key: 'interactions', label: 'interactions measured' },
   { key: 'candidates', label: 'close-call candidates', tone: 'text-moderate' },
-  { key: 'verified', label: 'verified by NVIDIA', tone: 'text-accept' },
+  { key: 'verified', label: 'verified by NVIDIA Cosmos3-Reason', tone: 'text-accept' },
   { key: 'rejected', label: 'rejected', tone: 'text-reject' },
 ]
 

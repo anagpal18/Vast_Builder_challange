@@ -10,6 +10,7 @@ and site in data/config, then calibrate.py turns the raw tracks into ground trac
 import argparse
 import json
 import logging
+import os
 import re
 import subprocess
 import tempfile
@@ -106,11 +107,15 @@ def _segment_rows(vss, ov):
     return sorted(segs, key=lambda s: pick(s, "segment_number", default=0))
 
 
-def ingest_camera(vss_cam, n_chunks=4, out_width=960, out_fps=15, vss=None):
+def ingest_camera(vss_cam, n_chunks=4, out_width=960, out_fps=15, vss=None, chunk_uris=None):
+    """chunk_uris: exact parent videos (s3://...) to use instead of searching the camera's archive."""
     vss = vss or client()
     cid = our_id(vss_cam)
     _status(cid, state="finding chunks", vss_camera_id=vss_cam)
-    chunks = longest_run(find_chunks(vss, vss_cam), n_chunks)
+    if chunk_uris:
+        chunks = [{"original_video": u, "location": None, "chunk_duration_sec": 30.0} for u in chunk_uris]
+    else:
+        chunks = longest_run(find_chunks(vss, vss_cam), n_chunks)
     if not chunks:
         _status(cid, state="error", error="no chunks found for camera")
         raise RuntimeError(f"no chunks for {vss_cam}")
@@ -236,8 +241,17 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--cameras", default=",".join(DEFAULT_CAMERAS))
     ap.add_argument("--chunks", type=int, default=4, help="30 s chunks per camera")
+    ap.add_argument("--chunk-file", action="append", default=[],
+                    help="exact chunk filename(s), e.g. 20261001_072155_set06_video_chunk_0027 (one camera)")
     args = ap.parse_args(argv)
     ok = []
+    if args.chunk_file:
+        bucket = os.environ.get("S3_CHUNKS_BUCKET", "team-28-vss-chunks")
+        prefix = os.environ.get("VSS_USERNAME") or os.environ.get("USERNAME") or "team-28"
+        uris = [f if f.startswith("s3://") else f"s3://{bucket}/{prefix}/{f.removesuffix('.mp4')}.mp4"
+                for f in args.chunk_file]
+        cam = args.cameras.split(",")[0]
+        return 0 if ingest_camera(cam, vss=None, chunk_uris=uris) else 1
     for cam in [c for c in args.cameras.split(",") if c]:
         try:
             ok.append(ingest_camera(cam, args.chunks))

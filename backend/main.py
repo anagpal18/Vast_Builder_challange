@@ -2,6 +2,7 @@
 import asyncio
 import json
 import logging
+import os
 import threading
 import uuid
 from contextlib import asynccontextmanager
@@ -15,7 +16,7 @@ from pydantic import BaseModel
 
 from backend import config as C
 from backend.agents import llm
-from backend.agents.orchestrator import Run
+from backend.agents.orchestrator import ReplayRun, Run, has_recording
 from backend.agents.recommend import URL_STATUS, check_catalog_urls, load_catalog
 from backend.memory_adapter import BACKEND_NAME, memory
 from backend.perception.calibrate import calibrate_camera
@@ -76,7 +77,7 @@ async def lifespan(app):
     pump.cancel()
 
 
-app = FastAPI(title="ALMOST", lifespan=lifespan)
+app = FastAPI(title="LOOKOUT", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.mount("/media", StaticFiles(directory=C.DATA), name="media")
 
@@ -84,6 +85,66 @@ app.mount("/media", StaticFiles(directory=C.DATA), name="media")
 @app.get("/console", include_in_schema=False)
 def test_console():
     return FileResponse(STATIC / "mock.html")
+
+
+_STATUS = {"at": 0.0, "data": None}
+
+
+def _probe_all():
+    """Probe every external service in parallel; 'cached' = down but recordings exist (replay available)."""
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    import httpx
+
+    from backend import replay
+    gpu_h = {"Authorization": f"Bearer {C.GPU_BEARER_TOKEN}"} if C.GPU_BEARER_TOKEN else {}
+
+    def get(url, headers=None):
+        try:
+            r = httpx.get(url, headers=headers or {}, timeout=4)
+            return r.status_code, (r.json() if r.headers.get("content-type", "").startswith("application/json") else None)
+        except Exception:
+            return None, None
+
+    def model_of(js):
+        try:
+            return js["data"][0]["id"]
+        except Exception:
+            return None
+
+    probes = {
+        "vast_vss": ("VAST video archive (VSS)", lambda: get(f"{C.VSS_URL}/api/v1/metadata/ingest-config") if C.VSS_URL else (None, None), "vss_search"),
+        "cosmos3_reason": ("NVIDIA Cosmos3-Reason", lambda: get(f"{C.COSMOS3_REASON_URL}/v1/models", gpu_h), "cosmos3_reason"),
+        "embed1": ("NVIDIA Cosmos Embed1", lambda: get(f"{C.COSMOS_EMBED1_URL}/v1/models", gpu_h), "embed1"),
+        "yolo11": ("YOLO11 detector", lambda: get(f"{C.YOLO_URL}/healthz", gpu_h), None),
+        "wandb_llm": ("W&B Inference · " + C.LLM_MODEL.split("/")[-1],
+                      lambda: get(f"{C.WANDB_BASE_URL}/models", {"Authorization": f"Bearer {C.WANDB_API_KEY}"})
+                      if C.WANDB_API_KEY else (None, None), "wandb_llm"),
+    }
+    with ThreadPoolExecutor(max_workers=len(probes)) as ex:
+        results = dict(zip(probes, ex.map(lambda k: probes[k][1](), probes)))
+    out = []
+    for key, (name, _, rec_dir) in probes.items():
+        code, js = results[key]
+        n_rec = sum(1 for _ in (replay.DIR / rec_dir).glob("*.json")) if rec_dir and (replay.DIR / rec_dir).exists() else 0
+        state = "live" if code == 200 else ("cached" if n_rec else "down")
+        detail = model_of(js) if key in ("cosmos3_reason", "embed1") else None
+        if key == "yolo11" and code == 200:
+            detail = "yolo11 · per-frame sidecars"
+        out.append({"key": key, "name": name, "state": state, "http": code, "detail": detail, "recordings": n_rec})
+    out.append({"key": "weave", "name": "W&B Weave tracing", "state": "live" if llm.WEAVE_URL else "down",
+                "detail": llm.WEAVE_URL, "recordings": 0})
+    return {"services": out, "replay": replay.status(), "memory_backend": BACKEND_NAME, "data_mode": C.DATA_MODE,
+            "checked_at": time.strftime("%H:%M:%S")}
+
+
+@app.get("/status")
+def status():
+    import time
+    if time.time() - _STATUS["at"] > 15 or _STATUS["data"] is None:
+        _STATUS["data"], _STATUS["at"] = _probe_all(), time.time()
+    return _STATUS["data"]
 
 
 def _replay_status():
@@ -119,7 +180,9 @@ class InvestigateBody(BaseModel):
 
 
 @app.post("/investigate")
-def investigate(body: InvestigateBody | None = None):
+def investigate(body: InvestigateBody | None = None, live: bool = False):
+    """Default: replay the last successful live run (smooth, works offline). ?live=1 runs the pipeline for real
+    (and records it). REPLAY_RUNS=0 makes live the default."""
     if any(r.get("status") == "running" for r in STATE.runs.values()):
         raise HTTPException(409, "an investigation is already running")
     known = {x["site_id"] for x in load_sites()}
@@ -127,6 +190,11 @@ def investigate(body: InvestigateBody | None = None):
     if bad:
         raise HTTPException(400, f"unknown site ids: {bad}")
     run_id = f"r{uuid.uuid4().hex[:6]}"
+    explicit = bool(body and body.site_ids)
+    if not live and not explicit and os.environ.get("REPLAY_RUNS", "1") == "1" and has_recording():
+        run = ReplayRun(run_id, HUB.emit)
+        threading.Thread(target=run.go, daemon=True, name=f"replay-{run_id}").start()
+        return {"run_id": run_id, "mode": "replay"}
     run = Run(run_id, body.site_ids if body else None, HUB.emit)
     threading.Thread(target=run.go, daemon=True, name=f"run-{run_id}").start()
     return {"run_id": run_id}
