@@ -10,6 +10,7 @@ WORKDIR /app
 COPY requirements.txt requirements-yolo.txt ./
 RUN pip install -r $( [ "$WITH_YOLO" = "1" ] && echo requirements-yolo.txt || echo requirements.txt )
 COPY . .
+RUN mkdir -p /app/defaults && cp -r data/config /app/defaults/config   # seeds an empty data volume
 
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=180s \
