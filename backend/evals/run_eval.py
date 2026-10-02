@@ -85,7 +85,7 @@ def recommendation_validity(patterns, events_by_id):
     total = in_cat = mapped = cites_ok = url_ok = 0
     issues = []
     for p in patterns:
-        allowed = {c["id"] for c in candidates_for(p)}
+        allowed = {c["id"] for c in candidates_for(p, [events_by_id[x] for x in p["event_ids"]])}
         for r in p["recommendations"]:
             total += 1
             c = cat.get(r["countermeasure_id"])

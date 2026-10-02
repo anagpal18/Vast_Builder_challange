@@ -312,8 +312,9 @@ def has_recording():
 
 class ReplayRun:
     """Plays a recorded run back over the WebSocket with its stage rhythm, compressed to ~TARGET_S seconds."""
-    TARGET_S = 20.0
-    MAX_GAP_S = 1.2
+    # seconds each stage takes on screen during a replay (messages inside a stage are spread evenly)
+    STAGE_S = {"scan": 2.5, "measure": 3.0, "verify": 5.0, "remember": 2.5, "recall": 5.0, "pattern": 4.5,
+               "recommend": 4.5, "report": 2.0}
 
     ACTIVE: dict = {}
 
@@ -330,14 +331,19 @@ class ReplayRun:
 
     def go(self):
         msgs = self.data["messages"]
-        span = (msgs[-1][0] - msgs[0][0]) if msgs else 1.0
-        scale = min(1.0, self.TARGET_S / max(span, 1e-6))
-        prev = msgs[0][0] if msgs else 0.0
+        # stage of every message (the stage whose start it follows) → per-message delay
+        stage_of, cur = [], None
+        for _, m in msgs:
+            if m.get("type") == "run.stage" and m.get("status") == "start":
+                cur = m["stage"]
+            stage_of.append(cur)
+        per_stage = {s: max(1, stage_of.count(s)) for s in set(stage_of) if s}
         ReplayRun.ACTIVE[self.run_id] = self
         time.sleep(0.8)  # lead-in: a client that POSTs before its WebSocket is open still hears the start
         try:
-            for t, m in msgs:
-                time.sleep(min(self.MAX_GAP_S, max(0.0, (t - prev) * scale)))
+            for (t, m), st in zip(msgs, stage_of):
+                if st:
+                    time.sleep(self.STAGE_S.get(st, 2.0) / per_stage[st])
                 if self.cancelled:
                     self.rec["status"] = "cancelled"
                     return

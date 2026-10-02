@@ -209,7 +209,9 @@ function Stage({ ev, w, cam }: { ev: EventDetail; w: WhatIf; cam: Camera }) {
                   </span>
                   {crash === 'after' && (
                     <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-lg bg-ink/85 px-4 py-2 text-lg">
-                      They made it home with {ev.pet_s.toFixed(1)} seconds to spare.
+                      {ev.pet_s < 0.05 && ev.closest_m != null
+                        ? `They made it home ${ev.closest_m.toFixed(1)} m apart, at the same moment.`
+                        : `They made it home with ${ev.pet_s.toFixed(1)} seconds to spare.`}
                     </motion.span>
                   )}
                 </motion.div>
@@ -521,6 +523,9 @@ function WhatIfPanel({ w, ev, shift, gap, contact, onSlide, onCrash, onReset, on
         <button onClick={onShowClip} className="rounded-lg border border-line px-3 py-2 text-sm text-mute hover:text-fog">
           Show the simulated crash clip
         </button>
+        {!w.impact && (
+          <span className="text-sm text-mute">No arrival time within ±3 s makes them touch: they passed side by side, {w.observed.min_gap_m?.toFixed(1)} m clear.</span>
+        )}
         {contact && <span className="ml-auto text-sm font-semibold text-severe">The {who} would have hit the {CLASS_LABEL[ev.b.cls]}.</span>}
       </div>
       <div className="mt-2 text-[11px] text-mute">{w.disclaimer}</div>

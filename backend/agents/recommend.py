@@ -57,9 +57,25 @@ def condition_keys(pattern):
     return keys
 
 
-def candidates_for(pattern):
+def candidates_for(pattern, events=None):
+    """Catalog entries for the pattern's conflict type and conditions; if none targets this exact conflict,
+    a broad match on the road users involved (still catalog-only, flagged as broad in the result)."""
     keys = condition_keys(pattern)
-    return [c for c in load_catalog() if keys & set(c["addresses"])]
+    exact = [c for c in load_catalog() if keys & set(c["addresses"])]
+    if any(pattern["conflict_type"] in c["addresses"] for c in exact):
+        return exact
+    users = {e["b"]["cls"] for e in (events or [])} | {e["a"]["cls"] for e in (events or [])}
+    broad = set()
+    if "person" in users or pattern["conflict_type"].startswith("ped"):
+        broad |= {"ped_vs_through", "ped_vs_right_turn"}
+    if "bicycle" in users or pattern["conflict_type"].startswith("bike"):
+        broad |= {"veh_angle", "ped_vs_right_turn"}  # turn lanes separate turning cars; crosswalk visibility
+    if not broad:
+        broad |= {"veh_angle"}
+    fallback = [c for c in load_catalog() if broad & set(c["addresses"]) and c not in exact]
+    for c in fallback:
+        c["_broad"] = True
+    return exact + fallback
 
 
 def _facts_text(p):
@@ -81,7 +97,7 @@ def _facts_text(p):
 def _template(pattern, events, cands):
     """Deterministic pick: conflict-type mapping first, then condition-driven ones."""
     f, ids = pattern["facts"], pattern["event_ids"]
-    primary = [c for c in cands if pattern["conflict_type"] in c["addresses"]]
+    primary = [c for c in cands if pattern["conflict_type"] in c["addresses"]] or [c for c in cands if c.get("_broad")]
     secondary = [c for c in cands if c not in primary]
     picks = (primary[:2] + secondary[:1]) if secondary else primary[:3]
     out = []
@@ -131,8 +147,9 @@ def validate(recs, pattern, cats, events=()):
 
 @llm.op(name="recommend.agent")
 def recommend(pattern, events, site):
-    cands = candidates_for(pattern)
+    cands = candidates_for(pattern, events)
     cats = catalog_by_id()
+    broad_ids = {c["id"] for c in cands if c.get("_broad")}
     if not cands:
         return [], "no active FHWA catalog entry addresses this conflict type"
     allowed = {c["id"]: c for c in cands}
@@ -155,6 +172,12 @@ def recommend(pattern, events, site):
         notes += more
     for r in recs:
         r["generated_by"] = gen
+        if r["countermeasure_id"] in broad_ids:
+            r["match"] = "broad"
+            r["review_note"] = ("Broad match on the road users involved: no FHWA catalog entry targets this exact "
+                                "conflict type. " + r["review_note"])
+        else:
+            r["match"] = "exact"
     if notes:
         log.info("recommend %s: %s", pattern["pattern_id"], "; ".join(notes))
     return recs, "; ".join(notes) or None

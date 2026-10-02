@@ -69,6 +69,16 @@ def compute_whatif(event, store):
     valid = a_ok & b_ok[None, :]
     d = np.where(valid, d, np.inf)
     gap = d.min(axis=1)
+    i0 = int(np.argmin(np.abs(shifts)))
+    anchored = 0.0
+    if cam.get("autocal") and not cam.get("calibrated") and np.isfinite(gap[i0]):
+        # Uncalibrated depth is good to ~1 m, but we know these two did NOT collide: anchor the curve so the
+        # observed pass (shift 0) keeps the real clearance (closest center distance minus body half-sizes, ≥0.3 m).
+        clearance = max(0.3, float(event.get("closest_m") or 0) - (W / 2 + rb))
+        if gap[i0] < clearance:
+            anchored = clearance - float(gap[i0])
+            d = d + anchored
+            gap = gap + anchored
 
     curve = [[float(s), round(float(g), 2) if np.isfinite(g) else None] for s, g in zip(shifts, gap)]
     contact = np.isfinite(gap) & (gap <= 0)
@@ -82,7 +92,6 @@ def compute_whatif(event, store):
     if start is not None:
         ranges.append([float(start), float(shifts[-1])])
 
-    i0 = int(np.argmin(np.abs(shifts)))
     impact, first_contact = None, None
     if contact.any():
         ci = np.where(contact)[0]
@@ -94,7 +103,13 @@ def compute_whatif(event, store):
         if 0 <= deeper < len(shifts) and contact[deeper]:
             k = deeper
         j = int(np.argmax(d[k] <= 0))
-        sp = float(np.hypot(np.interp(ts[k, j], A.t, A.vx), np.interp(ts[k, j], A.t, A.vy)))
+        ta = ts[k, j]
+        win = (A.t >= ta - 0.5) & (A.t <= ta + 0.5)
+        sp = float(np.median(A.speed[win])) if win.any() else float(np.hypot(np.interp(ta, A.t, A.vx), np.interp(ta, A.t, A.vy)))
+        sp = min(sp, C.MAX_SPEED_MPS.get(A.cls, 40.0))
+        if sp < 0.5:  # crept into contact: report the vehicle's typical moving speed instead of ~0
+            moving = A.speed[A.speed > 1.0]
+            sp = float(np.median(moving)) if len(moving) else sp
         impact = {"shift_s": float(shifts[k]) + 0.0, "t": float(tt[j]),
                   "point": [round(float(bx[j]), 2), round(float(by[j]), 2)], "speed_mps": round(sp, 2)}
 
@@ -125,5 +140,7 @@ def compute_whatif(event, store):
         "contact_ranges": ranges,
         "first_contact_shift_s": first_contact,
         "impact": impact,
-        "disclaimer": C.WHATIF_DISCLAIMER,
+        "disclaimer": C.WHATIF_DISCLAIMER + (" Uncalibrated camera: gaps anchored to the observed no-contact pass."
+                                             if anchored else ""),
+        "anchored_m": round(anchored, 2),
     }

@@ -75,7 +75,11 @@ def group_events(verified, similar_map=None, all_events=None):
                 continue
             groups[k].append(groups.pop(ok)[0])
             key_of[oid] = k
-    return {k: v for k, v in groups.items() if len(v) >= C.MIN_PATTERN_EVENTS}
+    out = {k: v for k, v in groups.items() if len(v) >= C.MIN_PATTERN_EVENTS}
+    if not out and groups:  # nothing recurs yet: still report the largest group so the run ends with advice
+        k = max(groups, key=lambda k: len(groups[k]))
+        out = {k: groups[k]}
+    return out
 
 
 def _template(key, events, facts, site):
