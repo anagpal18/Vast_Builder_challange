@@ -21,7 +21,7 @@ export default function EvalPanel() {
   const [open, setOpen] = useState(false)
   if (!data) return null
   return (
-    <div className="no-print fixed right-4 top-[68px] z-30 rounded-xl border border-line bg-panel/95 shadow-2xl backdrop-blur">
+    <div className="no-print fixed right-4 bottom-4 z-30 rounded-xl border border-line bg-panel/95 shadow-2xl backdrop-blur">
       <button onClick={() => setOpen(!open)} className="flex w-full items-center justify-between gap-6 px-3 pt-2 text-[11px] uppercase tracking-widest text-mute hover:text-fog">
         <span>Evaluation · Weave{USE_MOCK ? ' (mock)' : ''}</span>
         <span>{open ? '–' : '+'}</span>

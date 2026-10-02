@@ -36,13 +36,22 @@ SHORT = {"sf_streets_cam-1": "SF1", "sf_streets_cam-2": "SF2", "sf_streets_cam-3
          "neighborhood_cam-1": "NB1", "i24_cam-1": "I24", "pie_cam-3": "PIE3", "sdg_warehouse_cam-2": "WH2",
          "smartspace_cam-1": "SS1"}
 SITES = {  # VSS location → (site_id, name, speed limit mph)
-    "san_francisco": ("SITE_SF", "San Francisco streets (VSS)", 25),
-    "neighborhood": ("SITE_NB", "Neighborhood street (VSS)", 25),
-    "nashville": ("SITE_I24", "I-24 Nashville (VSS)", 65),
-    "toronto": ("SITE_PIE", "Toronto drives (VSS)", 30),
-    "warehouse3": ("SITE_WH", "Warehouse 3 (VSS)", 8),
-    "indoor": ("SITE_SS", "Indoor smart space (VSS)", 5),
+    "san_francisco": ("SITE_SF", "San Francisco streets", 25),
+    "neighborhood": ("SITE_NB", "Residential street", 25),
+    "nashville": ("SITE_I24", "I-24 Nashville", 65),
+    "toronto": ("SITE_PIE", "Toronto drives", 30),
+    "warehouse3": ("SITE_WH", "Warehouse 3", 8),
+    "indoor": ("SITE_SS", "Indoor smart space", 5),
 }
+
+
+def pretty_label(vss_cam):
+    m = re.match(r"sf_streets_cam-(\d+)", vss_cam)
+    if m:
+        return f"SF street cam {m.group(1)}"
+    return {"neighborhood_cam-1": "Residential street cam", "i24_cam-1": "I-24 overhead cam",
+            "sdg_warehouse_cam-2": "Warehouse aisle cam", "smartspace_cam-1": "Indoor smart-space cam",
+            "pie_cam-3": "Toronto dashcam"}.get(vss_cam, vss_cam.replace("_", " "))
 DEFAULT_CAMERAS = ["sf_streets_cam-1", "sf_streets_cam-2", "sf_streets_cam-3", "sf_streets_cam-4", "neighborhood_cam-1"]
 
 
@@ -201,7 +210,7 @@ def register(cid, vss_cam, site_id, site_name, limit, location, H, info, w, h, f
     sites = json.loads(sites_p.read_text()) if sites_p.exists() else []
     old = next((c for c in cams if c["camera_id"] == cid), {})
     keep_cal = old.get("calibrated")  # a human calibration (PUT /cameras/.../calibration) wins over autocal
-    cam = {"camera_id": cid, "site_id": site_id, "label": f"{vss_cam} · {location}",
+    cam = {"camera_id": cid, "site_id": site_id, "label": pretty_label(vss_cam),
            "video_url": f"/media/footage/{cid}.mp4", "fps": fps, "width": w, "height": h,
            "homography": old["homography"] if keep_cal else H,
            "ground": old.get("ground") if keep_cal else {"legs": {}, "crosswalks": [], "box": []},
@@ -213,8 +222,10 @@ def register(cid, vss_cam, site_id, site_name, limit, location, H, info, w, h, f
     if site is None:
         sites.append({"site_id": site_id, "name": site_name, "camera_ids": [cid], "speed_limit_mph": limit,
                       "signalized": True, "source": "vss"})
-    elif cid not in site["camera_ids"]:
-        site["camera_ids"].append(cid)
+    else:
+        site["name"] = site_name
+        if cid not in site["camera_ids"]:
+            site["camera_ids"].append(cid)
     cams_p.write_text(json.dumps(cams, indent=2))
     sites_p.write_text(json.dumps(sites, indent=2))
     get_camera.cache_clear()

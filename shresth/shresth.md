@@ -8,7 +8,7 @@ Shresth's machine instead.
 
 ```bash
 cd ~ && curl -fsSL -o cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x cloudflared
-./cloudflared tunnel --no-autoupdate --url http://video-lab-team-28.cosmos.vastdata.com --http-host-header video-lab-team-28.cosmos.vastdata.com
+./cloudflared tunnel --no-autoupdate --protocol http2 --url http://video-lab-team-28.cosmos.vastdata.com --http-host-header video-lab-team-28.cosmos.vastdata.com
 ```
 
 - After a few seconds it prints `https://<random-words>.trycloudflare.com`. Send that URL to Shresth.

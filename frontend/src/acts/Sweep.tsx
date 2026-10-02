@@ -35,6 +35,7 @@ export default function Sweep() {
 
   return (
     <div className="relative flex h-full flex-col gap-3 px-5 pb-5">
+      {!collapsed && <Hero cameras={config.cameras} siteCount={config.sites.length} idle={run.phase === 'idle'} onStart={run.start} />}
       <AnimatePresence mode="wait">
         {!collapsed ? (
           <motion.div key="wall" className="relative flex min-h-0 flex-1 gap-3" exit={{ opacity: 0, scale: 0.92, filter: 'blur(6px)' }} transition={{ duration: 0.6 }}>
@@ -48,25 +49,45 @@ export default function Sweep() {
         )}
       </AnimatePresence>
       {run.phase !== 'idle' && !collapsed && <Counters counts={run.counts} />}
-      {run.phase === 'idle' && <BigButton onClick={run.start} />}
     </div>
   )
 }
 
-function BigButton({ onClick }: { onClick: () => void }) {
+function Hero({ cameras, siteCount, idle, onStart }: { cameras: Camera[]; siteCount: number; idle: boolean; onStart: () => void }) {
+  const minutes = cameras.reduce((m, c) => m + (c.duration_s ?? 0), 0) / 60
+  const real = cameras.some((c) => c.vss)
   return (
-    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-      <motion.button
-        onClick={onClick}
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.97 }}
-        className="pointer-events-auto rounded-2xl border border-brand/60 bg-ink/85 px-14 py-8 text-center shadow-[0_0_80px_rgba(255,107,61,0.35)] backdrop-blur-md"
-      >
-        <div className="text-5xl font-black tracking-tight text-brand">FIND THE ALMOSTS</div>
-        <div className="mt-3 text-base text-mute">Scan every camera, measure every interaction, verify, find the pattern.</div>
-      </motion.button>
+    <div className="flex shrink-0 items-end justify-between gap-6 pt-1">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-mute">
+          <span className="inline-flex items-center gap-1.5 text-fog">
+            <span className="size-1.5 rounded-full bg-accept shadow-[0_0_8px_var(--color-accept)]" />
+            {real ? 'VAST video archive' : 'Simulated footage'}
+          </span>
+          {['NVIDIA Cosmos', 'YOLO11', 'W&B Weave'].map((t) => (
+            <span key={t} className="rounded border border-line px-1.5 py-0.5 tracking-wider">{t}</span>
+          ))}
+        </div>
+        <h1 className="mt-2 text-[2.1rem] font-black leading-[1.05] tracking-tight">
+          Every crossing on every camera. <span className="text-brand">The ones that almost happened.</span>
+        </h1>
+        <div className="mt-1.5 font-mono text-sm text-mute">
+          {cameras.length} cameras · {siteCount} sites{minutes > 0 ? ` · ${minutes.toFixed(minutes < 10 ? 1 : 0)} min of footage` : ''}
+        </div>
+      </div>
+      {idle && (
+        <motion.button
+          onClick={onStart}
+          initial={{ scale: 0.92, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          className="shrink-0 rounded-2xl border border-brand/60 bg-brand/10 px-8 py-4 text-left shadow-[0_0_60px_rgba(255,107,61,0.25)]"
+        >
+          <div className="text-2xl font-black tracking-tight text-brand">FIND THE ALMOSTS</div>
+          <div className="mt-0.5 text-xs text-mute">Scan · measure · verify with NVIDIA · find the pattern</div>
+        </motion.button>
+      )}
     </div>
   )
 }
@@ -76,7 +97,7 @@ function Wall({ cameras, events, sites }: { cameras: Camera[]; events: AlmostEve
   const dim = run.stage === 'verify' || run.stage === 'remember'
   const verifying = run.verdicts[run.verdicts.length - 1]?.event_id
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-4 content-center gap-2">
+    <div className={`grid min-h-0 flex-1 content-start gap-2.5 overflow-y-auto ${cameras.length > 8 ? 'grid-cols-4 xl:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4'}`}>
       {cameras.map((cam) => (
         <Tile
           key={cam.camera_id}
@@ -86,10 +107,6 @@ function Wall({ cameras, events, sites }: { cameras: Camera[]; events: AlmostEve
           dim={dim && !events.some((e) => e.camera_id === cam.camera_id && e.event_id === verifying)}
         />
       ))}
-      <div className="flex aspect-video flex-col items-center justify-center rounded-lg border border-line bg-panel text-center">
-        <div className="text-4xl font-black tracking-tight">ALMOST</div>
-        <div className="mt-1 max-w-[16rem] text-sm text-mute">Finds the crashes that almost happened, and proves how close they were.</div>
-      </div>
     </div>
   )
 }
@@ -121,9 +138,21 @@ function Tile({ cam, siteName, events, dim }: { cam: Camera; siteName: string; e
           </motion.div>
         )
       })}
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/85 to-transparent px-2.5 pt-6 pb-1.5 text-xs">
-        <span className="font-semibold">{siteName.replace(' (simulated)', '')}</span>
-        <span className="font-mono text-mute">{cam.camera_id}</span>
+      <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-fog backdrop-blur-sm">
+        <span className="size-1.5 animate-pulse rounded-full bg-severe" />
+        {cam.vss ? 'archive' : 'sim'}
+      </div>
+      {events.length > 0 && (
+        <div className="absolute top-2 right-2 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[11px] text-moderate backdrop-blur-sm">
+          {events.length} candidate{events.length === 1 ? '' : 's'}
+        </div>
+      )}
+      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/90 via-black/40 to-transparent px-2.5 pt-8 pb-1.5">
+        <div className="min-w-0">
+          <div className="truncate text-[13px] font-semibold">{cam.label || cam.camera_id}</div>
+          <div className="truncate text-[11px] text-mute">{siteName.replace(' (simulated)', '')}</div>
+        </div>
+        <span className="shrink-0 font-mono text-[10px] text-mute">{cam.camera_id}</span>
       </div>
     </motion.div>
   )

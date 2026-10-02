@@ -30,10 +30,10 @@ same spot {pet:.1f} s apart (post-encroachment time) at about {tc:.1f} s into th
 
 Decide from the video whether this is a genuine conflict (one road user had to brake, swerve, stop, hurry, or came
 dangerously close), NOT a conflict (normal passing, someone waiting at the curb, clearly separated, tracking error),
-or UNSURE (occluded, too far, cannot tell).
+You must decide: answer ACCEPT or REJECT, never UNSURE.
 
 Answer with JSON only:
-{{"verdict": "ACCEPT" | "REJECT" | "UNSURE",
+{{"verdict": "ACCEPT" | "REJECT",
   "reason": "<one sentence>",
   "description": "<2 sentences describing the interaction>",
   "contributing_factors": ["<short phrase>", ...],

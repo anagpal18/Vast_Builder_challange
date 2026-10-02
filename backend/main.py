@@ -103,7 +103,14 @@ def health():
 
 @app.get("/config")
 def get_config():
-    cams = [{k: v for k, v in c.items() if k != "sim"} for c in visible_cameras()]
+    cams = []
+    for c in visible_cameras():
+        c = {k: v for k, v in c.items() if k != "sim"}
+        try:
+            c["duration_s"] = round(STORE.get(c["camera_id"])["duration_s"], 1)
+        except Exception:
+            c["duration_s"] = None
+        cams.append(c)
     return {"sites": visible_sites(), "cameras": cams, "data_mode": C.DATA_MODE}
 
 

@@ -36,6 +36,12 @@ export interface Camera {
   /** image pixels -> ground meters */
   homography: Mat3
   ground: Ground
+  /** footage length (backend extension) */
+  duration_s?: number
+  /** real camera from the team's VSS archive (backend extension) */
+  vss?: { camera_id: string; location: string }
+  /** false = ground plane auto-estimated, not hand-calibrated */
+  calibrated?: boolean
 }
 
 export interface ConfigResponse {

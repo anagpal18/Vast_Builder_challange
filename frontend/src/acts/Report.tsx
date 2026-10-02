@@ -17,6 +17,8 @@ export default function Report({ siteId }: { siteId: string }) {
   const r = rep.data
   const cams = config.cameras.filter((c) => c.site_id === siteId)
   const ground = cams[0]?.ground
+  // Leg polygons give one shared ground frame; without them (auto-calibrated archive cameras) show snapshots
+  const mapped = !!ground && Object.keys(ground.legs ?? {}).length > 0
   const siteEvents = (all.data ?? []).filter((e) => e.site_id === siteId && e.status === 'verified')
   const worst = siteEvents.length ? Math.min(...siteEvents.map((e) => e.pet_s)) : null
 
@@ -45,9 +47,13 @@ export default function Report({ siteId }: { siteId: string }) {
           <div className="rounded-xl border border-line bg-panel p-3 print-plain">
             <div className="mb-2 flex justify-between text-xs uppercase tracking-widest text-mute">
               <span>Verified close calls at this site</span>
-              <span className="normal-case tracking-normal">dot = conflict point, color = severity</span>
+              <span className="normal-case tracking-normal">{mapped ? 'dot = conflict point, color = severity' : 'snapshot at the moment of conflict'}</span>
             </div>
-            {ground && <SiteMap ground={ground} events={siteEvents} onPick={(id) => go(`#/event/${id}`)} />}
+            {mapped && ground ? (
+              <SiteMap ground={ground} events={siteEvents} onPick={(id) => go(`#/event/${id}`)} />
+            ) : (
+              <Snapshots events={siteEvents} onPick={(id) => go(`#/event/${id}`)} />
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3 self-start">
             <Big value={String(siteEvents.length)} label="verified close calls" />
@@ -100,6 +106,24 @@ function TopEvent({ e, onOpen }: { e: AlmostEvent; onOpen: () => void }) {
         <MarginBar pet={e.pet_s} severity={e.severity} />
       </div>
     </button>
+  )
+}
+
+function Snapshots({ events, onPick }: { events: AlmostEvent[]; onPick: (id: string) => void }) {
+  if (!events.length) return <div className="grid h-48 place-items-center text-sm text-mute">No verified close calls yet.</div>
+  const shown = [...events].sort((a, b) => a.pet_s - b.pet_s).slice(0, 9)
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {shown.map((e) => (
+        <button key={e.event_id} onClick={() => onPick(e.event_id)} className="group relative aspect-video overflow-hidden rounded-md border border-line bg-black text-left">
+          <img src={mediaUrl(e.clip.thumb)} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/90 to-transparent px-2 pt-5 pb-1">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold"><SeverityDot severity={e.severity} />{CONFLICT_LABEL[e.conflict_type]}</span>
+            <span className="font-mono text-[11px]" style={{ color: SEVERITY_COLOR[e.severity] }}>{e.pet_s.toFixed(1)} s</span>
+          </div>
+        </button>
+      ))}
+    </div>
   )
 }
 

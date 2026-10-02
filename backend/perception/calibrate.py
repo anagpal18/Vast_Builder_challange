@@ -14,10 +14,20 @@ def tracks_path(camera_id):
     return TRACKS_DIR / f"{camera_id}.parquet"
 
 
-def _smooth(x):
-    if len(x) < SAVGOL_WINDOW:
+def _smooth(x, window=SAVGOL_WINDOW):
+    window = min(window, len(x) if len(x) % 2 else len(x) - 1)
+    if window < 5:
         return x
-    return savgol_filter(x, SAVGOL_WINDOW, SAVGOL_ORDER)
+    return savgol_filter(x, window, SAVGOL_ORDER)
+
+
+def _window_for(t, smooth_s):
+    """Savitzky-Golay window in samples: fixed 9 frames, or ~smooth_s seconds for noisy real detections."""
+    if not smooth_s or len(t) < 3:
+        return SAVGOL_WINDOW
+    dt = float(np.median(np.diff(t))) or 1 / 30
+    w = max(SAVGOL_WINDOW, int(round(smooth_s / dt)))
+    return w if w % 2 else w + 1
 
 
 def _kinematics(gx, gy, t):
@@ -54,7 +64,7 @@ def camera_ground_xy(cam):
     return (near - (mid - near) * 0.5).tolist()
 
 
-def to_ground(raw, H, cam_xy=None):
+def to_ground(raw, H, cam_xy=None, smooth_s=None):
     """raw: image-space track rows (MASTER 4.1 minus ground cols) → adds gx, gy, speed_mps, heading_deg."""
     df = raw.sort_values(["track_id", "frame"]).reset_index(drop=True)
     g = apply_h(H, df[["u", "v"]].to_numpy())
@@ -62,12 +72,14 @@ def to_ground(raw, H, cam_xy=None):
     out = []
     for _, d in df.groupby("track_id", sort=False):
         d = d.copy()
+        d = d.drop_duplicates("t")
         t = d["t"].to_numpy()
-        gx, gy = _smooth(d["gx"].to_numpy()), _smooth(d["gy"].to_numpy())
+        w = _window_for(t, smooth_s)
+        gx, gy = _smooth(d["gx"].to_numpy(), w), _smooth(d["gy"].to_numpy(), w)
         if cam_xy is not None:
             vx, vy = _kinematics(gx, gy, t)
             gx, gy = _footprint_offset(d["cls"].iloc[0], gx, gy, vx, vy, cam_xy)
-            gx, gy = _smooth(gx), _smooth(gy)
+            gx, gy = _smooth(gx, w), _smooth(gy, w)
         vx, vy = _kinematics(gx, gy, t)
         d["gx"], d["gy"] = gx, gy
         d["speed_mps"] = np.hypot(vx, vy)
@@ -79,7 +91,8 @@ def to_ground(raw, H, cam_xy=None):
 def calibrate_camera(camera_id):
     cam = get_camera(camera_id)
     raw = pd.read_parquet(raw_path(camera_id))
-    df = to_ground(raw, cam["homography"], camera_ground_xy(cam))
+    uncal = bool(cam.get("autocal")) and not cam.get("calibrated")
+    df = to_ground(raw, cam["homography"], camera_ground_xy(cam), smooth_s=1.0 if uncal else None)
     if cam.get("autocal") and not cam.get("calibrated"):
         from backend.config import UNCALIBRATED_MAX_RANGE_M
         cx, cy = camera_ground_xy(cam)

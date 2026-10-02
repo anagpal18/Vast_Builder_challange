@@ -127,6 +127,17 @@ class Run:
         cache.write_text(json.dumps(v))
         return ev, v
 
+    @staticmethod
+    def _decide(ev, v):
+        """Real footage gets a decision, never UNSURE: if the model hedges, the measurement decides."""
+        if v.get("verdict") != "UNSURE" or "sim" in get_camera(ev["camera_id"]):
+            return v
+        accept = ev["pet_s"] < 1.0 or (ev.get("min_ttc_s") is not None and ev["min_ttc_s"] < 1.0)
+        return {**v, "verdict": "ACCEPT" if accept else "REJECT", "resolved_by": "measurement",
+                "reason": (f"Measured margin {ev['pet_s']:.1f} s at the conflict point "
+                           + ("is inside our near-miss threshold." if accept else "is outside our near-miss threshold.")
+                           + (f" Model note: {v.get('reason')}" if v.get("reason") else "")).strip()}
+
     def verify(self, events=None):
         first = events is None
         top = events or self.to_verify()
@@ -136,6 +147,7 @@ class Run:
                 for i, e in enumerate(top)]
         for k, fut in enumerate(as_completed(futs), 1):
             e, v = fut.result()
+            v = self._decide(e, v)
             e["verification"] = v
             e["status"] = {"ACCEPT": "verified", "REJECT": "rejected"}.get(v["verdict"], "unsure")
             self.counts[e["status"]] += 1

@@ -38,7 +38,7 @@
   },
   {
     "site_id": "SITE_SF",
-    "name": "San Francisco streets (VSS)",
+    "name": "San Francisco streets",
     "camera_ids": [
       "CAM_SF4",
       "CAM_SF1",
@@ -51,7 +51,7 @@
   },
   {
     "site_id": "SITE_NB",
-    "name": "Neighborhood street (VSS)",
+    "name": "Residential street",
     "camera_ids": [
       "CAM_NB1"
     ],

@@ -121,6 +121,13 @@ def score(pet, ttc, vulnerable):
     return round(p + t + (0.1 if vulnerable else 0.0), 3)
 
 
+def robust_speed(tr, i, half=5):
+    """Median speed around sample i (±0.5 s at 10 Hz), clamped to a plausible ceiling for the class."""
+    s = tr.speed[max(0, i - half): i + half + 1]
+    v = float(np.median(s)) if len(s) else 0.0
+    return min(v, C.MAX_SPEED_MPS.get(tr.cls, 40.0))
+
+
 def order_pair(t1, t2):
     """Return (a, b): a is the vehicle. Two vehicles: the left-turner (or the first) is a."""
     if t1.cls not in VEH and t2.cls in VEH:
@@ -193,7 +200,7 @@ def analyze_pair(t1, t2, thresholds=None):
         "first_through": first,
         "t_conflict": round(float(e2), 2),
         "occupancy": {"a": [ea, xa], "b": [eb, xb]},
-        "speed_a": float(a.speed[ia]), "speed_b": float(b.speed[ib]),
+        "speed_a": robust_speed(a, ia), "speed_b": robust_speed(b, ib),
         "heading_diff": round(float(heading_diff), 1),
         "conflict_type": ctype,
         "severity": severity(pet),

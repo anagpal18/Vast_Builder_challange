@@ -64,6 +64,8 @@ PET_CANDIDATE_S = 3.0
 UNCALIBRATED_VULNERABLE_ONLY = os.environ.get("UNCALIBRATED_VULNERABLE_ONLY", "1") == "1"
 UNCALIBRATED_MAX_RANGE_M = float(os.environ.get("UNCALIBRATED_MAX_RANGE_M", "45"))
 TTC_CANDIDATE_S = 2.0
+# Physically plausible speed ceilings (m/s); faster readings are detection/depth noise
+MAX_SPEED_MPS = {"person": 4.0, "bicycle": 14.0, "motorcycle": 40.0, "car": 40.0, "bus": 30.0, "truck": 35.0}
 SEVERITY = [(1.0, "severe"), (2.0, "moderate"), (3.0, "low")]
 CLIP_PAD_S = 6.0
 

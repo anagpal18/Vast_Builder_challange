@@ -33,6 +33,7 @@ def facts_for(events, site):
         "red_light": sum(1 for e in events if any("red" in x.lower() for x in (e.get("verification") or {}).get("contributing_factors", []))),
         "speed_limit_mph": site.get("speed_limit_mph"),
         "max_speed_mph": round(max(e["a"].get("speed_mps", 0) for e in events) / MPS_PER_MPH, 1),
+        "calibrated": all(not (e.get("calibrated") is False) for e in events),
     }
     factors = defaultdict(int)
     for e in events:
