@@ -1,0 +1,15 @@
+# Pinned to the versions the build was verified with (Python 3.11).
+fastapi==0.142.2
+uvicorn[standard]==0.54.0
+pydantic==2.13.5
+numpy==2.4.6
+pandas==3.0.6
+pyarrow==25.0.1
+scipy==1.17.1
+shapely==2.1.2
+opencv-python-headless==5.0.0.93
+openai==3.24.0
+weave==0.53.11
+httpx==0.28.1
+websockets==17.1
+pytest==9.1.1

@@ -1,0 +1,16 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.pt
+
+# generated on the VM by `make data` (scripts/setup.sh)
+data/footage/*
+data/tracks/*
+data/clips/*
+data/thumbs/*
+data/chunks/*
+data/cache/*
+data/ground_truth/*
+!data/**/.gitkeep

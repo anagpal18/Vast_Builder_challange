@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALMOST Test Console</title>
+<style>
+:root{--bg:#0f1115;--panel:#171a21;--line:#262b36;--fg:#e6e8ee;--mute:#8a93a6;--acc:#ff5a3c;--ok:#33c37a;--warn:#f0b429;--bad:#ff4d5e;--blue:#4c8dff;--a:#ff8a3d;--b:#3dc6ff}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f5f6f8;--panel:#fff;--line:#e2e5ea;--fg:#14171f;--mute:#5d6678}}
+:root[data-theme="light"]{--bg:#f5f6f8;--panel:#fff;--line:#e2e5ea;--fg:#14171f;--mute:#5d6678}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+h1{font-size:18px;margin:0;letter-spacing:.08em}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin:0 0 10px}
+.pill{font-size:12px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--mute)}
+button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:6px 12px;border-radius:6px;cursor:pointer}
+button.go{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700;letter-spacing:.06em;padding:8px 18px}
+button:disabled{opacity:.5;cursor:default}
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:12px 16px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.full{grid-column:1/-1}
+@media (max-width:900px){main{grid-template-columns:minmax(0,1fr)}}
+.stages{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+@media (max-width:700px){.stages{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.stage{border:1px solid var(--line);border-radius:6px;padding:6px;font-size:12px}
+.stage .bar{height:4px;background:var(--line);border-radius:2px;margin-top:4px;overflow:hidden}
+.stage .bar i{display:block;height:100%;width:0;background:var(--blue);transition:width .2s}
+.stage.done .bar i{background:var(--ok)}
+.counts{display:flex;flex-wrap:wrap;gap:16px;margin-top:10px}
+.counts div b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.counts div span{font-size:11px;color:var(--mute);text-transform:uppercase}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+td,th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+tr.ev{cursor:pointer} tr.ev:hover{background:rgba(127,127,127,.08)} tr.sel{background:rgba(76,141,255,.15)}
+.tbl{overflow:auto;max-height:360px}
+.badge{font-size:11px;padding:1px 6px;border-radius:4px;font-weight:600}
+.ACCEPT,.verified{background:rgba(51,195,122,.18);color:var(--ok)}
+.REJECT,.rejected{background:rgba(255,77,94,.18);color:var(--bad)}
+.UNSURE,.unsure{background:rgba(240,180,41,.18);color:var(--warn)}
+.candidate{background:rgba(138,147,166,.18);color:var(--mute)}
+.severe{color:var(--bad);font-weight:600}.moderate{color:var(--warn)}.low{color:var(--mute)}
+.theater{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:10px}
+@media (max-width:900px){.theater{grid-template-columns:minmax(0,1fr)}}
+.vwrap{position:relative;background:#000;border-radius:6px;overflow:hidden;aspect-ratio:16/9}
+.vwrap video,.vwrap canvas{position:absolute;inset:0;width:100%;height:100%}
+canvas.panel{width:100%;background:rgba(127,127,127,.06);border-radius:6px;display:block}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12.5px}
+.kv span{color:var(--mute)}
+.slider{display:flex;align-items:center;gap:10px;margin:8px 0}
+.slider input{flex:1}
+.flash{animation:fl .5s}
+@keyframes fl{0%{box-shadow:0 0 0 0 var(--bad)}50%{box-shadow:0 0 0 8px var(--bad)}100%{box-shadow:0 0 0 0 transparent}}
+.card{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px}
+.card h3{margin:0 0 4px;font-size:14px}
+.rec{border-left:3px solid var(--ok);padding:4px 10px;margin:8px 0}
+a{color:var(--blue)}
+.log{font:11.5px/1.4 ui-monospace,Menlo,monospace;max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+pre{font:11.5px/1.4 ui-monospace,Menlo,monospace;max-height:320px;overflow:auto;background:rgba(127,127,127,.08);padding:8px;border-radius:6px;white-space:pre-wrap;word-break:break-all}
+.muted{color:var(--mute)} .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+textarea{width:100%;font:12px ui-monospace,Menlo,monospace;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px}
+select{font:inherit;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>ALMOST</h1><span class="pill">mock test console</span>
+  <span id="health" class="muted"></span>
+  <span style="flex:1"></span>
+  <span id="sites" class="row"></span>
+  <button class="go" id="go">FIND THE ALMOSTS</button>
+</header>
+<main>
+  <section class="full">
+    <h2>Investigation <span id="runid" class="muted"></span></h2>
+    <div class="stages" id="stages"></div>
+    <div class="counts" id="counts"></div>
+  </section>
+
+  <section>
+    <h2>Events (candidates → verified)</h2>
+    <div class="row" style="margin-bottom:6px">
+      <select id="fstatus"><option value="">all statuses</option><option>verified</option><option>rejected</option><option>unsure</option><option>candidate</option></select>
+      <select id="fsite"><option value="">all sites</option></select>
+    </div>
+    <div class="tbl"><table><thead><tr><th>event</th><th>type</th><th>PET</th><th>TTC</th><th>sev</th><th>score</th><th>status</th></tr></thead><tbody id="evrows"></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>Patterns + FHWA recommendations</h2>
+    <div id="patterns" class="muted">Run an investigation.</div>
+  </section>
+
+  <section class="full" id="theaterSec">
+    <h2>Event theater <span id="evtitle" class="muted"></span></h2>
+    <div class="theater">
+      <div>
+        <div class="vwrap" id="vwrap"><video id="vid" muted playsinline controls></video><canvas id="ov"></canvas></div>
+        <div class="slider"><b>WHAT-IF</b><input type="range" id="shift" min="-3" max="3" step="0.05" value="0"><span id="shiftv" style="width:150px;font-variant-numeric:tabular-nums">shift 0.00 s</span></div>
+        <canvas class="panel" id="gap" height="140"></canvas>
+        <div class="muted" id="disclaimer" style="font-size:11.5px;margin-top:4px"></div>
+      </div>
+      <div>
+        <canvas class="panel" id="bev" height="300"></canvas>
+        <div class="kv" id="evkv" style="margin-top:8px"></div>
+        <div id="verif" style="margin-top:8px"></div>
+        <div id="similar" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Site report</h2>
+    <div class="row"><select id="rsite"></select><button id="rjson">JSON</button><button id="rmd">Markdown</button><a id="rmdlink" target="_blank">open .md</a></div>
+    <pre id="report" class="muted">—</pre>
+  </section>
+
+  <section>
+    <h2>Evaluation (Weave)</h2>
+    <div class="row"><button id="evalbtn">Load /eval/latest</button></div>
+    <div id="eval" class="muted" style="margin-top:8px">Run <code>python -m backend.evals.run_eval</code>, then load.</div>
+  </section>
+
+  <section>
+    <h2>API explorer</h2>
+    <div class="row" id="apibtns"></div>
+    <pre id="apiout" class="muted">—</pre>
+  </section>
+
+  <section>
+    <h2>Calibration (PUT /cameras/{id}/calibration)</h2>
+    <div class="row"><select id="ccam"></select><button id="cload">Load current</button><button id="csave">PUT</button></div>
+    <textarea id="cbody" rows="8" style="margin-top:6px" placeholder='{"points":[{"u":..,"v":..,"gx":..,"gy":..}, ...]} or {"homography":[[...],[...],[...]]}'></textarea>
+    <div id="cout" class="muted" style="font-size:12px"></div>
+  </section>
+
+  <section class="full">
+    <h2>WebSocket log <span id="wsstate" class="muted"></span></h2>
+    <div class="log" id="log"></div>
+  </section>
+</main>
+
+<script>
+const API = location.origin;
+const STAGES = ["scan","measure","verify","remember","recall","pattern","recommend","report"];
+const COUNTS = ["video_minutes","road_users","interactions","candidates","verified","rejected","unsure","patterns","recommendations"];
+const $ = id => document.getElementById(id);
+const j = async (p, opt) => { const r = await fetch(API + p, opt); if (!r.ok) throw new Error(p + " → " + r.status + " " + await r.text()); return r.headers.get("content-type")?.includes("json") ? r.json() : r.text(); };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let CFG = null, EVENTS = {}, CUR = null, WHATIF = null, CAM = null;
+
+// ---------- init ----------
+async function init() {
+  $("stages").innerHTML = STAGES.map(s => `<div class="stage" id="st-${s}">${s}<div class="bar"><i></i></div></div>`).join("");
+  renderCounts({});
+  try {
+    const h = await j("/health");
+    $("health").innerHTML = `memory: <b>${h.memory_backend}</b> · llm: <b>${esc(h.llm)}</b> · tracks: ${h.tracks_ready.length}/${h.cameras}` + (h.weave_url ? ` · <a target=_blank href="${h.weave_url}">Weave</a>` : "");
+  } catch (e) { $("health").textContent = "backend unreachable: " + e.message; }
+  CFG = await j("/config");
+  $("sites").innerHTML = CFG.sites.map(s => `<label class="pill"><input type=checkbox class=sitecb value="${s.site_id}" checked> ${s.site_id}</label>`).join("");
+  const opts = CFG.sites.map(s => `<option value="${s.site_id}">${esc(s.name)}</option>`).join("");
+  $("fsite").innerHTML = `<option value="">all sites</option>` + opts;
+  $("rsite").innerHTML = opts;
+  $("ccam").innerHTML = CFG.cameras.map(c => `<option>${c.camera_id}</option>`).join("");
+  $("rmdlink").href = API + "/report/" + $("rsite").value + ".md";
+  apiButtons();
+  await refresh();
+  connect();
+  const m = location.hash.match(/ev=([A-Z0-9_]+)/); if (m) openEvent(m[1]);
+  if (location.hash.includes("run")) $("go").click();
+}
+
+function renderCounts(c) {
+  $("counts").innerHTML = COUNTS.map(k => `<div><b>${c[k] ?? 0}</b><span>${k.replace("_"," ")}</span></div>`).join("");
+}
+
+// ---------- websocket ----------
+function connect() {
+  const ws = new WebSocket(API.replace(/^http/, "ws") + "/ws");
+  ws.onopen = () => $("wsstate").textContent = "connected";
+  ws.onclose = () => { $("wsstate").textContent = "disconnected, retrying…"; setTimeout(connect, 1500); };
+  ws.onmessage = m => onMsg(JSON.parse(m.data));
+}
+function log(msg) {
+  const el = $("log"), line = document.createElement("div");
+  const brief = {...msg}; if (brief.event) brief.event = brief.event.event_id; if (brief.pattern) brief.pattern = brief.pattern.pattern_id + ": " + brief.pattern.signature; if (brief.recommendation) brief.recommendation = brief.recommendation.name;
+  line.textContent = new Date().toLocaleTimeString() + "  " + JSON.stringify(brief);
+  el.prepend(line); while (el.childNodes.length > 400) el.lastChild.remove();
+}
+function onMsg(m) {
+  log(m);
+  if (m.type === "run.stage") {
+    const el = $("st-" + m.stage); el.classList.toggle("done", m.status === "done");
+    el.querySelector("i").style.width = (m.status === "done" ? 100 : (m.progress || 0.05) * 100) + "%";
+    renderCounts(m.counts);
+  } else if (m.type === "run.candidate") { EVENTS[m.event.event_id] = m.event; renderEvents(); }
+  else if (m.type === "run.verified") { const e = EVENTS[m.event_id]; if (e) { e.status = m.status; e.verification = {verdict: m.verdict, reason: m.reason}; renderEvents(); } }
+  else if (m.type === "run.done") { $("go").disabled = false; refresh(); }
+  else if (m.type === "run.error") { $("go").disabled = false; alertBox("Run failed: " + m.error); }
+}
+function alertBox(t) { $("runid").textContent = t; }
+
+// ---------- run ----------
+$("go").onclick = async () => {
+  const ids = [...document.querySelectorAll(".sitecb:checked")].map(x => x.value);
+  STAGES.forEach(s => { const el = $("st-" + s); el.classList.remove("done"); el.querySelector("i").style.width = "0"; });
+  EVENTS = {}; renderEvents(); $("patterns").innerHTML = "<span class=muted>running…</span>";
+  try { const r = await j("/investigate", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({site_ids: ids.length === CFG.sites.length ? null : ids})});
+    $("runid").textContent = "run " + r.run_id; $("go").disabled = true;
+  } catch (e) { alertBox(e.message); }
+};
+
+async function refresh() {
+  const evs = await j("/events"); EVENTS = {}; evs.forEach(e => EVENTS[e.event_id] = e); renderEvents();
+  renderPatterns(await j("/patterns"));
+}
+$("fstatus").onchange = renderEvents; $("fsite").onchange = renderEvents;
+function renderEvents() {
+  const st = $("fstatus").value, si = $("fsite").value;
+  const rows = Object.values(EVENTS).filter(e => (!st || e.status === st) && (!si || e.site_id === si)).sort((a, b) => b.score - a.score);
+  $("evrows").innerHTML = rows.map(e => `<tr class="ev ${CUR?.event_id === e.event_id ? "sel" : ""}" data-id="${e.event_id}">
+    <td>${e.event_id}</td><td>${e.conflict_type}</td><td>${e.pet_s}</td><td>${e.min_ttc_s ?? "–"}</td>
+    <td class="${e.severity}">${e.severity}</td><td>${e.score.toFixed(2)}</td><td><span class="badge ${e.status}">${e.status}</span></td></tr>`).join("") || `<tr><td colspan=7 class=muted>no events yet</td></tr>`;
+  document.querySelectorAll("tr.ev").forEach(tr => tr.onclick = () => openEvent(tr.dataset.id));
+}
+function renderPatterns(ps) {
+  if (!ps.length) { $("patterns").innerHTML = "<span class=muted>No patterns yet.</span>"; return; }
+  $("patterns").innerHTML = ps.map(p => `<div class=card><h3>${p.pattern_id}: ${esc(p.signature)}</h3>
+    <div class=muted style="font-size:12px">${p.site_id} · ${p.count} events · worst PET ${p.worst_pet_s}s · median ${p.median_pet_s}s · by ${esc(p.generated_by)}${p.validator_note ? " · validator: " + esc(p.validator_note) : ""}</div>
+    <p style="margin:6px 0">${linkIds(esc(p.summary))}</p>
+    ${p.recommendations.map(r => `<div class=rec><a target=_blank href="${r.url}"><b>${esc(r.name)}</b></a> <span class=muted style="font-size:11px">${esc(r.focus_area || "")} · ${esc(r.generated_by)}</span><br>${linkIds(esc(r.why))}<br><span class=muted style="font-size:12px">cites ${r.cited_event_ids.map(x => `<a href="#" data-ev="${x}">${x}</a>`).join(", ")} · ${esc(r.review_note)}</span></div>`).join("")
+      || `<div class=muted>No recommendation: ${esc(p.recommendation_note || "")}</div>`}</div>`).join("");
+  bindEvLinks($("patterns"));
+}
+function linkIds(s) { return s.replace(/EV_[A-Z0-9]+_\d{4}(?:_\d+)?/g, x => `<a href="#" data-ev="${x}">${x}</a>`); }
+function bindEvLinks(root) { root.querySelectorAll("[data-ev]").forEach(a => a.onclick = ev => { ev.preventDefault(); openEvent(a.dataset.ev); }); }
+
+// ---------- event theater ----------
+async function openEvent(id) {
+  CUR = await j("/events/" + id); WHATIF = await j("/events/" + id + "/whatif");
+  CAM = CFG.cameras.find(c => c.camera_id === CUR.camera_id);
+  renderEvents();
+  $("evtitle").textContent = `${CUR.event_id} · ${CUR.camera_id} · t=${CUR.t_conflict}s`;
+  const v = $("vid");
+  const clipOk = await fetch(API + CUR.clip.url, {method: "HEAD"}).then(r => r.ok).catch(() => false);
+  v.dataset.offset = clipOk ? CUR.clip.t0 : 0;
+  v.src = API + (clipOk ? CUR.clip.url : CAM.video_url);
+  v.onloadedmetadata = () => { if (!clipOk) v.currentTime = CUR.clip.t0; v.play().catch(() => {}); };
+  v.ontimeupdate = () => { if (!clipOk && v.currentTime > CUR.clip.t1) v.currentTime = CUR.clip.t0; };
+  $("shift").value = 0; onShift();
+  const ver = CUR.verification || {};
+  $("evkv").innerHTML = [["type", CUR.conflict_type], ["A", `${CUR.a.cls} · ${CUR.a.movement} · ${CUR.a.speed_mps} m/s (track ${CUR.a.track_id})`],
+    ["B", `${CUR.b.cls} · ${CUR.b.movement} · ${CUR.b.speed_mps} m/s (track ${CUR.b.track_id})`], ["PET", CUR.pet_s + " s (first through: " + CUR.first_through + ")"],
+    ["min TTC", (CUR.min_ttc_s ?? "–") + " s"], ["severity", CUR.severity + " · score " + CUR.score], ["conflict pt", CUR.conflict_point.join(", ") + " m"],
+    ["observed gap", (WHATIF.observed.min_gap_m ?? "–") + " m"], ["first contact", WHATIF.first_contact_shift_s == null ? "none within ±3 s" : WHATIF.first_contact_shift_s + " s shift"],
+    ["clip", clipOk ? `<a target=_blank href="${API + CUR.clip.url}">mp4</a>` : "full footage (clip not cut)"]].map(([k, v]) => `<span>${k}</span><div>${v}</div>`).join("");
+  $("verif").innerHTML = ver.verdict ? `<span class="badge ${ver.verdict}">${ver.verdict}</span> <span class=muted style="font-size:12px">${esc(ver.model || "")} ${ver.confidence ?? ""}</span><p style="margin:4px 0">${esc(ver.reason)}</p><div class=muted style="font-size:12px">${esc(ver.description || "")}${ver.contributing_factors?.length ? "<br>factors: " + ver.contributing_factors.map(esc).join("; ") : ""}${ver.conditions ? "<br>conditions: " + esc(JSON.stringify(ver.conditions)) : ""}</div>` : "<span class=muted>not verified (below verification cutoff)</span>";
+  const sims = await j("/events/" + id + "/similar").catch(() => []);
+  $("similar").innerHTML = sims.length ? "<b style='font-size:12px'>Similar (VAST recall)</b><br>" + sims.map(s => `<a href="#" data-ev="${s.event.event_id}">${s.event.event_id}</a> <span class=muted>${s.score}</span>`).join(" · ") : "";
+  bindEvLinks($("similar"));
+  $("disclaimer").textContent = WHATIF.disclaimer;
+  $("theaterSec").scrollIntoView({behavior: "smooth"});
+}
+
+function lerpPath(path, t) {  // path rows [t, ...vals]
+  if (!path.length || t < path[0][0] || t > path[path.length - 1][0]) return null;
+  let lo = 0, hi = path.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (path[m][0] <= t) lo = m; else hi = m; }
+  const a = path[lo], b = path[hi], f = b[0] === a[0] ? 0 : (t - a[0]) / (b[0] - a[0]);
+  return a.map((x, i) => i === 0 ? t : (i === 3 && a.length === 4 ? angLerp(a[i], b[i], f) : x + (b[i] - x) * f));
+}
+function angLerp(a, b, f) { let d = ((b - a + 540) % 360) - 180; return a + d * f; }
+function toImg(H, x, y) { const w = H[2][0] * x + H[2][1] * y + H[2][2]; return [(H[0][0] * x + H[0][1] * y + H[0][2]) / w, (H[1][0] * x + H[1][1] * y + H[1][2]) / w]; }
+function rectCorners(x, y, hdeg, L, W) { const h = hdeg * Math.PI / 180, c = Math.cos(h), s = Math.sin(h);
+  return [[L/2, W/2], [L/2, -W/2], [-L/2, -W/2], [-L/2, W/2]].map(([a, b]) => [x + a * c - b * s, y + a * s + b * c]); }
+
+function shiftVal() { return parseFloat($("shift").value); }
+function gapAt(s) { if (!WHATIF) return null; let best = WHATIF.gap_curve[0]; for (const g of WHATIF.gap_curve) if (Math.abs(g[0] - s) < Math.abs(best[0] - s)) best = g; return best[1]; }
+let lastContact = false;
+$("shift").oninput = onShift;
+function onShift() {
+  const s = shiftVal(), g = gapAt(s);
+  $("shiftv").textContent = `shift ${s >= 0 ? "+" : ""}${s.toFixed(2)} s · gap ${g == null ? "–" : g.toFixed(2) + " m"}`;
+  const contact = g != null && g <= 0;
+  if (contact && !lastContact) { const w = $("vwrap"); w.classList.remove("flash"); void w.offsetWidth; w.classList.add("flash"); }
+  lastContact = contact;
+  drawGap();
+}
+
+function drawGap() {
+  const cv = $("gap"), ctx = cv.getContext("2d"); cv.width = cv.clientWidth * devicePixelRatio; cv.height = 140 * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio); const W = cv.clientWidth, H = 140, pad = 28;
+  ctx.clearRect(0, 0, W, H); if (!WHATIF) return;
+  const pts = WHATIF.gap_curve.filter(p => p[1] != null); if (!pts.length) return;
+  const ymax = Math.max(1, ...pts.map(p => p[1])), ymin = Math.min(0, ...pts.map(p => p[1]));
+  const X = s => pad + (s + 3) / 6 * (W - pad - 8), Y = g => 8 + (ymax - g) / (ymax - ymin) * (H - pad - 8);
+  const css = getComputedStyle(document.documentElement);
+  ctx.fillStyle = "rgba(255,77,94,.15)"; WHATIF.contact_ranges.forEach(([a, b]) => ctx.fillRect(X(a), 8, X(b) - X(a), H - pad - 8));
+  ctx.strokeStyle = css.getPropertyValue("--line"); ctx.beginPath(); ctx.moveTo(pad, Y(0)); ctx.lineTo(W - 8, Y(0)); ctx.stroke();
+  ctx.strokeStyle = css.getPropertyValue("--blue"); ctx.lineWidth = 2; ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))); ctx.stroke();
+  ctx.fillStyle = css.getPropertyValue("--mute"); ctx.font = "11px system-ui";
+  [-3, -2, -1, 0, 1, 2, 3].forEach(s => ctx.fillText((s > 0 ? "+" : "") + s + "s", X(s) - 8, H - 10));
+  ctx.fillText("min gap (m)", pad, 12); ctx.fillText("0", 8, Y(0) + 4);
+  const s = shiftVal(); ctx.strokeStyle = css.getPropertyValue("--acc"); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(s), 8); ctx.lineTo(X(s), H - pad); ctx.stroke();
+}
+
+function frame() {
+  requestAnimationFrame(frame);
+  if (!CUR || !WHATIF) return;
+  const v = $("vid"), t = v.currentTime + parseFloat(v.dataset.offset || 0);
+  drawOverlay(t); drawBev(t);
+}
+function drawOverlay(t) {
+  const cv = $("ov"), ctx = cv.getContext("2d"), W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== W * devicePixelRatio) { cv.width = W * devicePixelRatio; cv.height = H * devicePixelRatio; }
+  ctx.setTransform(devicePixelRatio * W / CAM.width, 0, 0, devicePixelRatio * H / CAM.height, 0, 0);
+  ctx.clearRect(0, 0, CAM.width, CAM.height);
+  for (const k of ["a", "b"]) {
+    const rows = CUR.overlay[k], col = k === "a" ? "#ff8a3d" : "#3dc6ff";
+    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.globalAlpha = .55; ctx.beginPath();
+    rows.forEach((r, i) => i ? ctx.lineTo(r[1], r[2]) : ctx.moveTo(r[1], r[2])); ctx.stroke(); ctx.globalAlpha = 1;
+    const r = lerpPath(rows, t); if (r) { ctx.lineWidth = 3; ctx.strokeRect(r[3], r[4], r[5] - r[3], r[6] - r[4]); ctx.fillStyle = col; ctx.font = "bold 18px system-ui"; ctx.fillText(k.toUpperCase(), r[3], r[4] - 6); }
+  }
+  const P = toImg(WHATIF.homography_inv, ...CUR.conflict_point);
+  ctx.strokeStyle = "#ff4d5e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(P[0], P[1], 9, 0, 7); ctx.stroke();
+  const s = shiftVal();
+  if (Math.abs(s) > 1e-3) {  // ghost of A, shifted in time, projected onto the real video
+    const a = lerpPath(WHATIF.a.path, t - s);
+    if (a) { const g = gapAt(s); const corners = rectCorners(a[1], a[2], a[3], ...WHATIF.a.dims_m).map(([x, y]) => toImg(WHATIF.homography_inv, x, y));
+      ctx.fillStyle = g != null && g <= 0 ? "rgba(255,77,94,.45)" : "rgba(255,138,61,.3)"; ctx.strokeStyle = "#ff8a3d"; ctx.setLineDash([6, 4]); ctx.beginPath();
+      corners.forEach((p, i) => i ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.setLineDash([]); }
+  }
+}
+function drawBev(t) {
+  const cv = $("bev"), ctx = cv.getContext("2d"), W = cv.clientWidth, H = 300;
+  if (cv.width !== W * devicePixelRatio) { cv.width = W * devicePixelRatio; cv.height = H * devicePixelRatio; }
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0); ctx.clearRect(0, 0, W, H);
+  const [cx, cy] = CUR.conflict_point, span = 22, sc = Math.min(W, H) / (2 * span);
+  const X = x => W / 2 + (x - cx) * sc, Y = y => H / 2 - (y - cy) * sc;
+  const css = getComputedStyle(document.documentElement);
+  ctx.strokeStyle = css.getPropertyValue("--line"); ctx.lineWidth = 1;
+  for (const [k, poly] of Object.entries(CAM.ground.legs || {})) { ctx.beginPath(); poly.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))); ctx.closePath(); ctx.stroke(); ctx.fillStyle = css.getPropertyValue("--mute"); }
+  ctx.fillStyle = "rgba(127,127,127,.15)"; (CAM.ground.crosswalks || []).forEach(c => { ctx.beginPath(); c.polygon.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))); ctx.closePath(); ctx.fill(); });
+  const path = (rows, col) => { ctx.strokeStyle = col; ctx.globalAlpha = .5; ctx.lineWidth = 2; ctx.beginPath(); rows.forEach((r, i) => i ? ctx.lineTo(X(r[1]), Y(r[2])) : ctx.moveTo(X(r[1]), Y(r[2]))); ctx.stroke(); ctx.globalAlpha = 1; };
+  path(WHATIF.a.path, "#ff8a3d"); path(WHATIF.b.path, "#3dc6ff");
+  ctx.strokeStyle = "#ff4d5e"; ctx.beginPath(); ctx.arc(X(cx), Y(cy), 6, 0, 7); ctx.stroke();
+  const drawRect = (r, L, Wd, col, dashed) => { const cs = rectCorners(r[1], r[2], r[3], L, Wd); ctx.fillStyle = col; ctx.strokeStyle = col; ctx.setLineDash(dashed ? [4, 3] : []);
+    ctx.beginPath(); cs.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))); ctx.closePath(); dashed ? ctx.stroke() : ctx.fill(); ctx.setLineDash([]); };
+  const a = lerpPath(WHATIF.a.path, t); if (a) drawRect(a, ...WHATIF.a.dims_m, "#ff8a3d");
+  const s = shiftVal(); if (Math.abs(s) > 1e-3) { const g = lerpPath(WHATIF.a.path, t - s); if (g) drawRect(g, ...WHATIF.a.dims_m, gapAt(s) <= 0 ? "#ff4d5e" : "#ff8a3d", true); }
+  const b = lerpPath(WHATIF.b.path, t); if (b) { ctx.fillStyle = "#3dc6ff"; ctx.beginPath(); ctx.arc(X(b[1]), Y(b[2]), Math.max(3, WHATIF.b.radius_m * sc), 0, 7); ctx.fill(); }
+  ctx.fillStyle = css.getPropertyValue("--mute"); ctx.font = "11px system-ui"; ctx.fillText(`bird's-eye · t=${t.toFixed(1)}s · 10 m = ${Math.round(10 * sc)} px`, 8, 14);
+}
+requestAnimationFrame(frame);
+
+// ---------- report / eval / explorer / calibration ----------
+$("rsite").onchange = () => $("rmdlink").href = API + "/report/" + $("rsite").value + ".md";
+$("rjson").onclick = async () => $("report").textContent = JSON.stringify(await j("/report/" + $("rsite").value), null, 2);
+$("rmd").onclick = async () => $("report").textContent = await j("/report/" + $("rsite").value + ".md");
+$("evalbtn").onclick = async () => {
+  try { const e = await j("/eval/latest");
+    $("eval").innerHTML = `<div class=kv>${Object.entries(e.metrics).map(([k, v]) => `<span>${k}</span><div><b>${typeof v === "number" ? (Math.round(v * 1000) / 1000) : esc(JSON.stringify(v))}</b></div>`).join("")}</div>
+      <div class=muted style="font-size:12px;margin-top:6px">${esc(e.generated_at)} ${e.weave_url ? `· <a target=_blank href="${e.weave_url}">Weave</a>` : ""}</div>`;
+  } catch (err) { $("eval").textContent = err.message; }
+};
+function apiButtons() {
+  const site = CFG.sites[0].site_id;
+  const eps = ["/health", "/config", "/runs", "/events?status=verified", "/patterns", "/catalog", `/report/${site}`, "/eval/latest"];
+  $("apibtns").innerHTML = eps.map(p => `<button data-p="${p}">${p}</button>`).join("") + `<button data-p="__cur">/events/{current}/whatif</button>`;
+  $("apibtns").querySelectorAll("button").forEach(b => b.onclick = async () => {
+    const p = b.dataset.p === "__cur" ? (CUR ? `/events/${CUR.event_id}/whatif` : null) : b.dataset.p;
+    if (!p) { $("apiout").textContent = "open an event first"; return; }
+    try { const r = await j(p); $("apiout").textContent = p + "\n" + (typeof r === "string" ? r : JSON.stringify(r, null, 2)).slice(0, 20000); } catch (e) { $("apiout").textContent = e.message; }
+  });
+}
+$("cload").onclick = () => { const c = CFG.cameras.find(c => c.camera_id === $("ccam").value); $("cbody").value = JSON.stringify({homography: c.homography}, null, 1); };
+$("csave").onclick = async () => {
+  try { const r = await j(`/cameras/${$("ccam").value}/calibration`, {method: "PUT", headers: {"content-type": "application/json"}, body: $("cbody").value});
+    $("cout").textContent = JSON.stringify(r); CFG = await j("/config"); } catch (e) { $("cout").textContent = e.message; }
+};
+init();
+</script>
+</body>
+</html>

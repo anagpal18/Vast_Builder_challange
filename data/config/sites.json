@@ -1,0 +1,39 @@
+[
+  {
+    "site_id": "SITE_A",
+    "name": "5th & Market (simulated)",
+    "camera_ids": [
+      "CAM_A1",
+      "CAM_A2"
+    ],
+    "speed_limit_mph": 25,
+    "signalized": true
+  },
+  {
+    "site_id": "SITE_B",
+    "name": "Oak Ave & 12th St (simulated)",
+    "camera_ids": [
+      "CAM_B1"
+    ],
+    "speed_limit_mph": 35,
+    "signalized": true
+  },
+  {
+    "site_id": "SITE_C",
+    "name": "Bayshore Blvd & Pine St (simulated)",
+    "camera_ids": [
+      "CAM_C1"
+    ],
+    "speed_limit_mph": 30,
+    "signalized": true
+  },
+  {
+    "site_id": "SITE_D",
+    "name": "Alameda midblock crossing (simulated)",
+    "camera_ids": [
+      "CAM_D1"
+    ],
+    "speed_limit_mph": 25,
+    "signalized": false
+  }
+]

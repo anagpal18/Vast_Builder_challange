@@ -1,0 +1,15 @@
+# GPU + YOLO for real footage:  docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+services:
+  almost:
+    build:
+      args:
+        WITH_YOLO: "1"
+    environment:
+      YOLO_DEVICE: "0"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

@@ -1,0 +1,14 @@
+# git pull && docker compose up -d --build
+services:
+  almost:
+    build: .
+    image: almost-backend
+    env_file: .env
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      PORT: "8000"
+    volumes:
+      - ./data:/app/data          # footage, tracks, clips, caches persist on the VM disk
+      - ./memory:/app/memory      # Kenil's package, if present
+    restart: unless-stopped

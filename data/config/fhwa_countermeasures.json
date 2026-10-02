@@ -1,0 +1,167 @@
+[
+  {
+    "id": "leading_pedestrian_interval",
+    "name": "Leading Pedestrian Interval",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/leading-pedestrian-interval",
+    "focus_area": "Pedestrian",
+    "addresses": [
+      "ped_vs_right_turn",
+      "ped_vs_left_turn"
+    ],
+    "summary_in_our_words": "Gives pedestrians a few seconds of WALK before turning traffic gets green, so they are established in the crosswalk and more visible to turning drivers.",
+    "active": true
+  },
+  {
+    "id": "crosswalk_visibility_enhancements",
+    "name": "Crosswalk Visibility Enhancements",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/crosswalk-visibility-enhancements",
+    "focus_area": "Pedestrian",
+    "addresses": [
+      "ped_vs_right_turn",
+      "ped_vs_left_turn",
+      "ped_vs_through"
+    ],
+    "summary_in_our_words": "High-visibility markings, lighting and signing that make crosswalks and the people in them easier for drivers to see.",
+    "active": true
+  },
+  {
+    "id": "rectangular_rapid_flashing_beacons",
+    "name": "Rectangular Rapid Flashing Beacons (RRFB)",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/rectangular-rapid-flashing-beacons-rrfb",
+    "focus_area": "Pedestrian",
+    "addresses": [
+      "ped_vs_through"
+    ],
+    "summary_in_our_words": "Pedestrian-activated flashing lights at uncontrolled crossings that prompt drivers to yield.",
+    "active": true
+  },
+  {
+    "id": "pedestrian_hybrid_beacons",
+    "name": "Pedestrian Hybrid Beacons",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/pedestrian-hybrid-beacons",
+    "focus_area": "Pedestrian",
+    "addresses": [
+      "ped_vs_through"
+    ],
+    "summary_in_our_words": "A pedestrian-activated signal that stops traffic at midblock or uncontrolled crossings with a red indication.",
+    "active": true
+  },
+  {
+    "id": "medians_and_pedestrian_refuge_islands",
+    "name": "Medians and Pedestrian Refuge Islands in Urban and Suburban Areas",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/medians-and-pedestrian-refuge-islands-urban-and-suburban-areas",
+    "focus_area": "Pedestrian",
+    "addresses": [
+      "ped_vs_through"
+    ],
+    "summary_in_our_words": "A raised island in the middle of the street lets pedestrians cross one direction of traffic at a time.",
+    "active": true
+  },
+  {
+    "id": "bicycle_lanes",
+    "name": "Bicycle Lanes",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/bicycle-lanes",
+    "focus_area": "Pedestrian/Bicyclist (retired)",
+    "addresses": [
+      "bike_vs_right_turn",
+      "bike_vs_through"
+    ],
+    "summary_in_our_words": "Dedicated space for people on bikes that separates them from motor vehicle traffic.",
+    "active": false,
+    "status_note": "Not on the FHWA Proven Safety Countermeasures index as of Sep 2026; archived page returns 404. Inactive: never recommended."
+  },
+  {
+    "id": "dedicated_left_and_right_turn_lanes",
+    "name": "Dedicated Left- and Right-Turn Lanes at Intersections",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/dedicated-left-and-right-turn-lanes-intersections",
+    "focus_area": "Intersections",
+    "addresses": [
+      "veh_left_turn_vs_through",
+      "veh_angle"
+    ],
+    "summary_in_our_words": "Separate turn lanes take turning vehicles out of the through lanes and give them space to wait for a safe gap.",
+    "active": true
+  },
+  {
+    "id": "reduced_left_turn_conflict_intersections",
+    "name": "Reduced Left-Turn Conflict Intersections",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/reduced-left-turn-conflict-intersections",
+    "focus_area": "Intersections",
+    "addresses": [
+      "veh_left_turn_vs_through",
+      "veh_angle"
+    ],
+    "summary_in_our_words": "Geometric designs that replace direct left turns across oncoming traffic with safer right-turn-plus-U-turn movements.",
+    "active": true
+  },
+  {
+    "id": "roundabouts",
+    "name": "Roundabouts",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/roundabouts",
+    "focus_area": "Intersections",
+    "addresses": [
+      "veh_left_turn_vs_through",
+      "veh_angle"
+    ],
+    "summary_in_our_words": "Circular intersections that slow traffic and remove the left-turn and right-angle conflicts of a conventional intersection.",
+    "active": true
+  },
+  {
+    "id": "appropriate_speed_limits",
+    "name": "Appropriate Speed Limits for All Road Users",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/appropriate-speed-limits-all-road-users",
+    "focus_area": "Speed Management (retired)",
+    "addresses": [
+      "high_speed"
+    ],
+    "summary_in_our_words": "Setting speed limits that account for everyone using the road, including people walking and biking.",
+    "active": false,
+    "status_note": "Not on the FHWA Proven Safety Countermeasures index as of Sep 2026; archived page returns 404. Inactive: never recommended."
+  },
+  {
+    "id": "speed_safety_cameras",
+    "name": "Speed Safety Cameras",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/speed-safety-cameras",
+    "focus_area": "Speed Management (retired)",
+    "addresses": [
+      "high_speed"
+    ],
+    "summary_in_our_words": "Automated cameras that detect and deter speeding.",
+    "active": false,
+    "status_note": "Not on the FHWA Proven Safety Countermeasures index as of Sep 2026; archived page returns 404. Inactive: never recommended."
+  },
+  {
+    "id": "lighting",
+    "name": "Lighting",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/lighting",
+    "focus_area": "Crosscutting",
+    "addresses": [
+      "night",
+      "visibility_issue"
+    ],
+    "summary_in_our_words": "Adequate street lighting at crossings and intersections so drivers can see pedestrians and other road users at night.",
+    "active": true
+  },
+  {
+    "id": "backplates_with_retroreflective_borders",
+    "name": "Backplates with Retroreflective Borders",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/backplates-retroreflective-borders",
+    "focus_area": "Intersections",
+    "addresses": [
+      "red_light"
+    ],
+    "summary_in_our_words": "Signal backplates with a reflective border make traffic signals more conspicuous, day and night.",
+    "active": true
+  },
+  {
+    "id": "yellow_change_intervals",
+    "name": "Yellow Change Intervals",
+    "url": "https://highways.dot.gov/safety/proven-safety-countermeasures/yellow-change-intervals",
+    "focus_area": "Intersections",
+    "addresses": [
+      "red_light"
+    ],
+    "summary_in_our_words": "Yellow signal timing set to match approach speeds so drivers can stop safely instead of entering on red.",
+    "active": true
+  }
+]
