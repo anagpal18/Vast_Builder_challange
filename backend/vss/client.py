@@ -6,6 +6,7 @@ Response shapes come from the skills docs; accessors below are tolerant on purpo
 import logging
 import shutil
 import threading
+import time
 from pathlib import Path
 
 import httpx
@@ -48,16 +49,30 @@ class VSS:
         with self._lock:
             return self._token or self.login()
 
-    def _req(self, method, path, **kw):
-        for attempt in (0, 1):
-            r = self.http.request(method, f"{self.base}/api/v1{path}",
-                                  headers={"Authorization": f"Bearer {self.token}"}, **kw)
-            if r.status_code == 401 and attempt == 0:
+    RETRY_STATUS = {502, 503, 504, 520, 522, 524, 530}  # gateway / tunnel hiccups
+
+    def _req(self, method, path, retries=5, **kw):
+        relogged = False
+        for attempt in range(retries):
+            try:
+                r = self.http.request(method, f"{self.base}/api/v1{path}",
+                                      headers={"Authorization": f"Bearer {self.token}"}, **kw)
+            except httpx.TransportError as e:
+                if attempt == retries - 1:
+                    raise VSSError(f"{method} {path}: {type(e).__name__}: {e}") from e
+                time.sleep(min(30, 2 ** attempt))
+                continue
+            if r.status_code == 401 and not relogged:
+                relogged = True
                 with self._lock:
                     self._token = None
                 continue
+            if r.status_code in self.RETRY_STATUS and attempt < retries - 1:
+                log.warning("%s %s: HTTP %s, retrying", method, path, r.status_code)
+                time.sleep(min(30, 2 ** attempt))
+                continue
             if r.status_code >= 400:
-                raise VSSError(f"{method} {path}: HTTP {r.status_code} {r.text[:300]}")
+                raise VSSError(f"{method} {path}: HTTP {r.status_code} {r.text[:200]}")
             return r.json()
 
     def get(self, path, **params):
@@ -112,15 +127,30 @@ class VSS:
             return dest
         dest.parent.mkdir(parents=True, exist_ok=True)
         tmp = dest.with_suffix(".part")
-        with self.http.stream("GET", f"{self.base}/api/v1/videos/stream",
-                              params={"source": source, "token": self.token}, timeout=300) as r:
-            if r.status_code >= 400:
-                raise VSSError(f"stream {source}: HTTP {r.status_code}")
-            with open(tmp, "wb") as f:
-                for chunk in r.iter_bytes(1 << 20):
-                    f.write(chunk)
-        shutil.move(tmp, dest)
-        return dest
+        for attempt in range(5):
+            try:
+                with self.http.stream("GET", f"{self.base}/api/v1/videos/stream",
+                                      params={"source": source, "token": self.token}, timeout=300) as r:
+                    if r.status_code in self.RETRY_STATUS or r.status_code == 401:
+                        if r.status_code == 401:
+                            with self._lock:
+                                self._token = None
+                        raise httpx.TransportError(f"HTTP {r.status_code}")
+                    if r.status_code >= 400:
+                        raise VSSError(f"stream {source}: HTTP {r.status_code}")
+                    expected = int(r.headers.get("content-length") or 0)
+                    with open(tmp, "wb") as f:
+                        for chunk in r.iter_bytes(1 << 20):
+                            f.write(chunk)
+                if expected and tmp.stat().st_size != expected:
+                    raise httpx.TransportError(f"short read {tmp.stat().st_size}/{expected}")
+                shutil.move(tmp, dest)
+                return dest
+            except httpx.TransportError as e:  # includes RemoteProtocolError (cut-off body)
+                log.warning("download %s attempt %d failed: %s", Path(source).name, attempt + 1, e)
+                if attempt == 4:
+                    raise VSSError(f"stream {source}: {e}") from e
+                time.sleep(min(30, 2 ** attempt))
 
 
 def rows(resp, *keys):

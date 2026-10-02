@@ -40,7 +40,8 @@
     "site_id": "SITE_SF",
     "name": "San Francisco streets (VSS)",
     "camera_ids": [
-      "CAM_SF4"
+      "CAM_SF4",
+      "CAM_SF1"
     ],
     "speed_limit_mph": 25,
     "signalized": true,

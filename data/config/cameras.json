@@ -1220,5 +1220,61 @@
         "s3://team-28-vss-chunks/team-28/20261001_100703_sf4_chunk_0000.mp4"
       ]
     }
+  },
+  {
+    "camera_id": "CAM_SF1",
+    "site_id": "SITE_SF",
+    "label": "sf_streets_cam-1 \u00b7 san_francisco",
+    "video_url": "/media/footage/CAM_SF1.mp4",
+    "fps": 15,
+    "width": 960,
+    "height": 540,
+    "homography": [
+      [
+        -0.012485812101254998,
+        -0.0,
+        5.9931898086023985
+      ],
+      [
+        -0.0,
+        -0.0,
+        -10.380509247903353
+      ],
+      [
+        -0.0,
+        -0.003995924016621822,
+        1.0
+      ]
+    ],
+    "ground": {
+      "legs": {},
+      "crosswalks": [],
+      "box": []
+    },
+    "camera_ground_xy": [
+      0.0,
+      0.0
+    ],
+    "lighting": "day",
+    "calibrated": false,
+    "autocal": {
+      "method": "autocal-object-heights",
+      "samples": 30037,
+      "hfov_deg": 60.0,
+      "calibrated": false,
+      "horizon_row": 250.3,
+      "camera_height_m": 3.12,
+      "focal_px": 831.4
+    },
+    "vss": {
+      "camera_id": "sf_streets_cam-1",
+      "location": "san_francisco",
+      "chunks": [
+        "s3://team-28-vss-chunks/team-28/20261001_094101_sf1_chunk_0000.mp4",
+        "s3://team-28-vss-chunks/team-28/20261001_094126_sf1_chunk_0001.mp4",
+        "s3://team-28-vss-chunks/team-28/20261001_094151_sf1_chunk_0002.mp4",
+        "s3://team-28-vss-chunks/team-28/20261001_094216_sf1_chunk_0003.mp4"
+      ]
+    }
   }
 ]

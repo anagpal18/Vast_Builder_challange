@@ -114,11 +114,31 @@ def ingest_camera(vss_cam, n_chunks=4, out_width=960, out_fps=15, vss=None):
 
     def fetch(p):
         local = SEG_DIR / vss_cam / Path(p["source"]).name
-        vss.download(p["source"], local)
-        det = vss.detections(p["source"])
-        return p, local, det
-    with ThreadPoolExecutor(max_workers=6) as ex:
-        got = list(ex.map(fetch, plan))
+        det_cache = local.with_suffix(".det.json")
+        try:
+            vss.download(p["source"], local)
+            if det_cache.exists():
+                det = json.loads(det_cache.read_text())
+            else:
+                det = vss.detections(p["source"])
+                if det:
+                    det_cache.write_text(json.dumps(det))
+            return p, local, det
+        except Exception as e:  # one bad segment must not sink the camera
+            log.warning("%s: segment %s skipped: %s", vss_cam, Path(p["source"]).name, e)
+            return None
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        results = list(ex.map(fetch, plan))
+    # keep the continuous prefix: a hole would shift the stitched video against the track times
+    got = []
+    for g in results:
+        if g is None:
+            break
+        got.append(g)
+    if len(got) < max(1, len(plan) // 2):
+        _status(cid, state="error", error=f"only {len(got)}/{len(plan)} segments fetched")
+        raise RuntimeError(f"{vss_cam}: only {len(got)}/{len(plan)} segments")
+    _status(cid, state="downloaded", fetched=len(got))
 
     # frames for the tracker, in global camera time; boxes rescaled to the web video size
     src_w = src_h = None
