@@ -91,6 +91,9 @@ LLM_MAX_TOKENS = int(os.environ.get("LLM_MAX_TOKENS", "4096"))
 
 # "mock" forces memory_mock; "auto" uses Kenil's memory/ package if importable
 MEMORY_BACKEND = os.environ.get("MEMORY_BACKEND", "auto")
+# Which cameras the app shows and investigates: real (VSS archive), sim (simulated sites), both.
+# "auto" = real when the team VSS stack is configured, else sim. The Weave eval always uses the simulated sites.
+_DM = os.environ.get("DATA_MODE", "auto")
 CHECK_CATALOG_URLS = os.environ.get("CHECK_CATALOG_URLS", "1") == "1"
 
 # --- VAST Builders stack (team VSS instance + shared GPU models), from /config/<team>.config --------
@@ -103,3 +106,5 @@ GPU_BEARER_TOKEN = os.environ.get("GPU_BEARER_TOKEN")
 COSMOS3_REASON_URL = (os.environ.get("COSMOS3_REASON_URL") or f"http://{GPU_HOST}:8001").rstrip("/")
 YOLO_URL = (os.environ.get("YOLO_URL") or f"http://{GPU_HOST}:8002").rstrip("/")
 COSMOS_EMBED1_URL = (os.environ.get("COSMOS_EMBED1_URL") or f"http://{GPU_HOST}:8003").rstrip("/")
+
+DATA_MODE = _DM if _DM in ("real", "sim", "both") else ("real" if VSS_URL else "sim")

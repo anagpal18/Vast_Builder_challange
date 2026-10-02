@@ -136,7 +136,10 @@ def main():
             llm._weave.publish(llm._weave.Dataset(name="almost_ground_truth", rows=gt_rows))
         except Exception as e:
             print("dataset publish skipped:", e)
-    run = Run(f"eval-{int(time.time())}", None, lambda m: None)
+    from backend.perception.camera import load_cameras, load_sites
+    sim_cams = {c["camera_id"] for c in load_cameras() if "sim" in c}
+    sim_sites = [s["site_id"] for s in load_sites() if set(s["camera_ids"]) & sim_cams]
+    run = Run(f"eval-{int(time.time())}", sim_sites, lambda m: None)  # ground truth exists only for these
     run.go()
     time.sleep(3)  # let the URL check finish
     res = evaluate(list(run.events.values()), run.patterns, gt_rows)

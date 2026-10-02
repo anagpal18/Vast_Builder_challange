@@ -11,13 +11,15 @@ SUDO=""; [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null && SUDO="sudo"
 
 # --- system packages ---------------------------------------------------------
 need=()
-command -v ffmpeg >/dev/null || need+=(ffmpeg)
 command -v curl >/dev/null || need+=(curl)
+command -v ffmpeg >/dev/null || need+=(ffmpeg)   # optional: imageio-ffmpeg (pip) ships a static ffmpeg
 [ "$WITH_YOLO" = "1" ] && need+=(libgl1 libglib2.0-0)
 if [ ${#need[@]} -gt 0 ]; then
-  if command -v apt-get >/dev/null; then
+  if command -v apt-get >/dev/null && { [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; }; then
     say "installing system packages: ${need[*]}"
     $SUDO apt-get update -qq && $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${need[@]}"
+  elif command -v curl >/dev/null; then
+    say "no passwordless sudo: skipping ${need[*]} (ffmpeg comes from the imageio-ffmpeg wheel)"
   elif command -v brew >/dev/null; then
     brew install ffmpeg
   else

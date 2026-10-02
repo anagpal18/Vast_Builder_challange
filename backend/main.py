@@ -19,7 +19,8 @@ from backend.agents.orchestrator import Run
 from backend.agents.recommend import URL_STATUS, check_catalog_urls, load_catalog
 from backend.memory_adapter import BACKEND_NAME, memory
 from backend.perception.calibrate import calibrate_camera
-from backend.perception.camera import homography_from_points, load_cameras, load_sites, save_cameras
+from backend.perception.camera import (homography_from_points, load_cameras, load_sites, save_cameras,
+                                       visible_cameras, visible_sites)
 from backend.perception.clips import overlay
 from backend.perception.summarize import STORE
 from backend.perception.track import raw_path
@@ -91,14 +92,14 @@ def health():
     return {"ok": True, "memory_backend": BACKEND_NAME, "llm": C.LLM_MODEL if llm.enabled() else "template",
             "vss": bool(C.VSS_URL), "gpu": bool(C.GPU_BEARER_TOKEN),
             "ingest": json.loads(ingest.read_text()) if ingest.exists() else None,
-            "weave_url": llm.WEAVE_URL, "cameras": len(load_cameras()),
+            "weave_url": llm.WEAVE_URL, "data_mode": C.DATA_MODE, "cameras": len(visible_cameras()),
             "tracks_ready": [c["camera_id"] for c in load_cameras() if (C.TRACKS_DIR / f"{c['camera_id']}.parquet").exists()]}
 
 
 @app.get("/config")
 def get_config():
-    cams = [{k: v for k, v in c.items() if k != "sim"} for c in load_cameras()]
-    return {"sites": load_sites(), "cameras": cams}
+    cams = [{k: v for k, v in c.items() if k != "sim"} for c in visible_cameras()]
+    return {"sites": visible_sites(), "cameras": cams, "data_mode": C.DATA_MODE}
 
 
 class InvestigateBody(BaseModel):
@@ -138,10 +139,16 @@ def _event(eid):
     return e
 
 
+def _shown_sites():
+    return {s["site_id"] for s in visible_sites()}
+
+
 @app.get("/events")
 def list_events(site_id: str | None = None, status: str | None = None):
+    shown = _shown_sites()
     evs = list(STATE.events.values()) or memory.list_events(site_id, status)
-    evs = [e for e in evs if (not site_id or e["site_id"] == site_id) and (not status or e["status"] == status)]
+    evs = [e for e in evs if (not site_id or e["site_id"] == site_id) and (not status or e["status"] == status)
+           and (site_id or e["site_id"] in shown)]
     return sorted(evs, key=lambda e: -e["score"])
 
 
@@ -171,7 +178,8 @@ def get_similar(eid: str):
 
 @app.get("/patterns")
 def list_patterns(site_id: str | None = None):
-    return [p for p in STATE.patterns.values() if not site_id or p["site_id"] == site_id]
+    shown = _shown_sites()
+    return [p for p in STATE.patterns.values() if (p["site_id"] == site_id if site_id else p["site_id"] in shown)]
 
 
 @app.get("/patterns/{pid}")

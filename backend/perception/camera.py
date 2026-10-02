@@ -20,6 +20,35 @@ def load_cameras():
     return _read("cameras.json")
 
 
+def _is_sim(cam):
+    return "sim" in cam
+
+
+def visible_cameras():
+    """Cameras for the UI and default investigations (DATA_MODE). Real ones appear once their footage exists."""
+    from backend.config import DATA_MODE, FOOTAGE_DIR
+    out = []
+    for c in load_cameras():
+        if DATA_MODE == "sim" and not _is_sim(c):
+            continue
+        if DATA_MODE == "real" and _is_sim(c):
+            continue
+        if not _is_sim(c) and not (FOOTAGE_DIR / f"{c['camera_id']}.mp4").exists():
+            continue
+        out.append(c)
+    return out
+
+
+def visible_sites():
+    cams = {c["camera_id"] for c in visible_cameras()}
+    out = []
+    for s in load_sites():
+        ids = [i for i in s["camera_ids"] if i in cams]
+        if ids:
+            out.append({**s, "camera_ids": ids})
+    return out
+
+
 def save_cameras(cameras):
     (CONFIG_DIR / "cameras.json").write_text(json.dumps(cameras, indent=2))
     get_camera.cache_clear()

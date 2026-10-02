@@ -15,7 +15,7 @@ from backend.agents import llm
 from backend.agents.patterns import find_patterns
 from backend.agents.recommend import recommend
 from backend.memory_adapter import BACKEND_NAME, memory
-from backend.perception.camera import get_camera, load_cameras, load_sites
+from backend.perception.camera import get_camera, load_cameras, load_sites, visible_sites
 from backend.perception.clips import cut_clip
 from backend.perception.conflicts import measure_camera
 from backend.perception.summarize import STORE
@@ -33,9 +33,10 @@ class Run:
 
     def __init__(self, run_id, site_ids, emit):
         self.run_id, self.emit = run_id, emit
-        sites = load_sites()
+        sites = load_sites() if site_ids else visible_sites()  # explicit ids (eval) may name hidden sites
         self.sites = {s["site_id"]: s for s in sites if not site_ids or s["site_id"] in site_ids}
-        self.cameras = [c for c in load_cameras() if c["site_id"] in self.sites]
+        cam_ids = {i for s in self.sites.values() for i in s["camera_ids"]}
+        self.cameras = [c for c in load_cameras() if c["camera_id"] in cam_ids]
         self.counts = {"video_minutes": 0, "road_users": 0, "interactions": 0, "candidates": 0,
                        "verified": 0, "rejected": 0, "unsure": 0, "similar_links": 0, "patterns": 0,
                        "recommendations": 0}
