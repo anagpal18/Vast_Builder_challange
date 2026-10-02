@@ -66,13 +66,16 @@ def cosmos_video_json(prompt, video_path: Path, max_tokens=900, timeout=180):
 
 
 def embed_text(texts):
-    """Cosmos Embed1 text vectors (256-d), one per input."""
+    """Cosmos Embed1 text vectors (256-d), one per input. Query mode takes one item per request."""
     texts = [texts] if isinstance(texts, str) else list(texts)
-    body = {"model": model_id(C.COSMOS_EMBED1_URL), "input": texts, "request_type": "query",
-            "encoding_format": "float"}
-    r = httpx.post(f"{C.COSMOS_EMBED1_URL}/v1/embeddings", json=body, headers=_h(), timeout=60)
-    r.raise_for_status()
-    return [d["embedding"] for d in r.json()["data"]]
+    model = model_id(C.COSMOS_EMBED1_URL)
+    out = []
+    for t in texts:
+        r = httpx.post(f"{C.COSMOS_EMBED1_URL}/v1/embeddings", headers=_h(), timeout=60,
+                       json={"model": model, "input": t, "request_type": "query", "encoding_format": "float"})
+        r.raise_for_status()
+        out.append(r.json()["data"][0]["embedding"])
+    return out
 
 
 def yolo_infer(video_path: Path, timeout=300):

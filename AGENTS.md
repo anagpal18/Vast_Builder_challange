@@ -90,8 +90,12 @@ scripts/deploy-k8s.sh`), then re-run `scripts/deploy-k8s.sh` (it does `rollout r
 - `GET /api/v1/videos/detections?source=` → `{video_shape: [1080, 1920], fps: 30, frames: [{frame_index,
   time_sec, detections: [{label, confidence, bbox: [x1, y1, x2, y2]}]}]}`: every frame, **no track ids**.
 - `POST /api/v1/search` rejects `llm_top_n: 0` (must be ≥ 1).
-- GPU (`GPU_HOST=166.19.38.112`, bearer `GPU_BEARER_TOKEN`): Cosmos3-Reason :8001 and Embed1 :8003 serve
-  `/v1/models` (discover the model id, don't hardcode); YOLO :8002 `/healthz`.
+- GPU (`GPU_HOST=166.19.38.112`, bearer `GPU_BEARER_TOKEN`), tested through `backend/vss/gpu.py`:
+  - Cosmos3-Reason :8001: model id is `nvidia/cosmos3-nano-reasoner` (discovered via `/v1/models`; don't
+    hardcode). Video verify with `video_url` base64 ≈ 4 s per 12 s clip; returns parseable JSON. It reports
+    UNSURE on the simulated cartoon clips (correct), so meaningful verdicts need real VSS footage.
+  - Embed1 :8003: 256-d; `request_type: "query"` accepts **one input per request** (a list → 422).
+  - YOLO :8002: `/healthz`; `/v1/infer` ≈ 2 s per 12 s clip, frames shaped like the VSS sidecars.
 - `kubectl` is **not** preinstalled; kubeconfig is `/config/team-28-k8s.yaml` (`deploy-k8s.sh` handles both).
 
 ## Where things are
