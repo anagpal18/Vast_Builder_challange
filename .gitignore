@@ -14,3 +14,10 @@ data/chunks/*
 data/cache/*
 data/ground_truth/*
 !data/**/.gitkeep
+
+# VM credentials: never commit
+*.config
+!config.example
+*kubeconfig*
+*-secret.yaml
+*-k8s.yaml

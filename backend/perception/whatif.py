@@ -88,9 +88,14 @@ def compute_whatif(event, store):
         ci = np.where(contact)[0]
         k = int(ci[np.argmin(np.abs(shifts[ci]))])
         first_contact = float(shifts[k]) + 0.0  # normalise -0.0
+        # impact = just past first contact (0.15 s deeper, staying inside the contact range), so the slider's
+        # snap point and the crash banner agree (frontend TEAM_NOTES 3)
+        deeper = k + int(round(0.15 / step)) * (1 if shifts[k] >= 0 else -1)
+        if 0 <= deeper < len(shifts) and contact[deeper]:
+            k = deeper
         j = int(np.argmax(d[k] <= 0))
         sp = float(np.hypot(np.interp(ts[k, j], A.t, A.vx), np.interp(ts[k, j], A.t, A.vy)))
-        impact = {"shift_s": first_contact, "t": float(tt[j]),
+        impact = {"shift_s": float(shifts[k]) + 0.0, "t": float(tt[j]),
                   "point": [round(float(bx[j]), 2), round(float(by[j]), 2)], "speed_mps": round(sp, 2)}
 
     pad = C.WHATIF_RANGE_S
@@ -110,8 +115,8 @@ def compute_whatif(event, store):
                        for t, x, y, h in zip(A.t[ma], A.gx[ma], A.gy[ma], a_hd_full[ma])]},
         "b": {"cls": B.cls, "radius_m": float(C.RADIUS_M.get(B.cls, rb)),
               "dims_m": list(C.DIMS_M.get(B.cls, (1.0, 1.0))),
-              "path": [[round(float(t), 2), round(float(x), 2), round(float(y), 2)]
-                       for t, x, y in zip(B.t[mb], B.gx[mb], B.gy[mb])]},
+              "path": [[round(float(t), 2), round(float(x), 2), round(float(y), 2), round(float(np.degrees(h)) % 360, 1)]
+                       for t, x, y, h in zip(B.t[mb], B.gx[mb], B.gy[mb], b_hd_full[mb])]},
         "image_paths": {"a": img_path(A.track_id, t0 - pad, t1 + pad), "b": img_path(B.track_id, t0, t1)},
         "homography_inv": h_inv(cam["homography"]),
         "observed": {"pet_s": event["pet_s"],

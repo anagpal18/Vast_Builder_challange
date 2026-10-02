@@ -24,8 +24,8 @@ def cut_clip(event):
         return None
     t0, t1 = event["clip"]["t0"], event["clip"]["t1"]
     try:
-        subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-ss", f"{t0:.2f}", "-i", str(src),
-                        "-t", f"{t1 - t0:.2f}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "26",
+        subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", str(src), "-ss", f"{t0:.4f}",
+                        "-t", f"{t1 - t0:.4f}", "-c:v", "libx264", "-bf", "0", "-preset", "veryfast", "-crf", "26",
                         "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart", str(clip)],
                        check=True, timeout=60)
         subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-ss", f"{event['t_conflict']:.2f}", "-i", str(src),

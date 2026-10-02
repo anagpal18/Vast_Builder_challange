@@ -115,6 +115,21 @@ def main(argv=None):
             print(f"{cid}: {n} actors, {df.track_id.nunique()} tracks, {len(df)} detections, {len(gt)} gt events")
     gt_all.sort(key=lambda g: (g["camera_id"], g["t"]))
     gt_path.write_text(json.dumps(gt_all, indent=2))
+    write_crash_clip(gt_all)
+
+
+def write_crash_clip(gt_rows):
+    """data/footage/CRASH_A.mp4: the simulated actual crash, for "this is what 0.7 seconds looks like"."""
+    import shutil
+    import subprocess
+    crash = next((g for g in gt_rows if g.get("crash")), None)
+    src = FOOTAGE_DIR / f"{crash['camera_id']}.mp4" if crash else None
+    if not crash or not src.exists() or not shutil.which("ffmpeg"):
+        return
+    t0 = max(0.0, crash["t"] - 5)
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-ss", f"{t0:.3f}", "-t", "9",
+                    "-c:v", "libx264", "-bf", "0", "-preset", "veryfast", "-crf", "24", "-pix_fmt", "yuv420p",
+                    "-an", "-movflags", "+faststart", str(FOOTAGE_DIR / "CRASH_A.mp4")], check=False)
 
 
 if __name__ == "__main__":

@@ -12,9 +12,10 @@ import Calibrate from './acts/Calibrate.tsx'
 
 // MASTER's calibration route is a path (/calibrate/:cameraId); Vite's SPA
 // fallback serves index.html there, so map it onto the hash router.
-if (location.pathname.startsWith('/calibrate/')) {
-  const id = location.pathname.split('/')[2]
-  history.replaceState(null, '', `/#/calibrate/${id}`)
+const calib = location.pathname.match(/^(.*)\/calibrate\/([^/]+)/)
+if (calib) {
+  const [, prefix, id] = calib
+  history.replaceState(null, '', `${prefix}/#/calibrate/${id}`)
   useRoute.setState({ route: parseHash(`#/calibrate/${id}`) })
 }
 

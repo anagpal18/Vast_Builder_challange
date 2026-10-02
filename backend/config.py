@@ -13,7 +13,17 @@ def _load_dotenv(path=ROOT / ".env"):
                 os.environ.setdefault(k.strip(), v.strip())
 
 
+def _load_team_config():
+    """On the workshop VM every team credential lives in /config/<team>.config (KEY=VALUE). .env wins."""
+    cfg_dir = Path(os.environ.get("TEAM_CONFIG_DIR", "/config"))
+    files = sorted(cfg_dir.glob("*.config")) if cfg_dir.is_dir() else []
+    if len(files) == 1:
+        _load_dotenv(files[0])
+    return files[0] if len(files) == 1 else None
+
+
 _load_dotenv()
+TEAM_CONFIG = _load_team_config()
 DATA = ROOT / "data"
 CONFIG_DIR = DATA / "config"
 FOOTAGE_DIR = DATA / "footage"
@@ -71,7 +81,7 @@ REVIEW_NOTE = "Suggested for traffic engineer review; not a verified design deci
 
 # --- W&B ------------------------------------------------------------------------
 WANDB_API_KEY = os.environ.get("WANDB_API_KEY")
-WANDB_ENTITY = os.environ.get("WANDB_ENTITY")
+WANDB_ENTITY = os.environ.get("WANDB_ENTITY") or os.environ.get("WANDB_TEAM")
 WANDB_PROJECT = os.environ.get("WANDB_PROJECT", "almost")
 WANDB_BASE_URL = os.environ.get("WANDB_BASE_URL", "https://api.inference.wandb.ai/v1")
 LLM_MODEL = os.environ.get("LLM_MODEL", "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B")  # text-only on W&B
@@ -82,3 +92,14 @@ LLM_MAX_TOKENS = int(os.environ.get("LLM_MAX_TOKENS", "4096"))
 # "mock" forces memory_mock; "auto" uses Kenil's memory/ package if importable
 MEMORY_BACKEND = os.environ.get("MEMORY_BACKEND", "auto")
 CHECK_CATALOG_URLS = os.environ.get("CHECK_CATALOG_URLS", "1") == "1"
+
+# --- VAST Builders stack (team VSS instance + shared GPU models), from /config/<team>.config --------
+VSS_URL = (os.environ.get("VSS_URL") or os.environ.get("INGRESS_URL") or "").rstrip("/")
+VSS_USERNAME = os.environ.get("VSS_USERNAME") or os.environ.get("USERNAME_VSS") or (
+    os.environ.get("USERNAME") if os.environ.get("INGRESS_URL") else None)
+VSS_PASSWORD = os.environ.get("VSS_PASSWORD") or (os.environ.get("PASSWORD") if os.environ.get("INGRESS_URL") else None)
+GPU_HOST = os.environ.get("GPU_HOST", "166.19.38.112")
+GPU_BEARER_TOKEN = os.environ.get("GPU_BEARER_TOKEN")
+COSMOS3_REASON_URL = (os.environ.get("COSMOS3_REASON_URL") or f"http://{GPU_HOST}:8001").rstrip("/")
+YOLO_URL = (os.environ.get("YOLO_URL") or f"http://{GPU_HOST}:8002").rstrip("/")
+COSMOS_EMBED1_URL = (os.environ.get("COSMOS_EMBED1_URL") or f"http://{GPU_HOST}:8003").rstrip("/")

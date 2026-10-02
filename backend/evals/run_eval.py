@@ -151,9 +151,23 @@ def main():
         "recs_citations_valid": res["recommendations"]["citations_valid"],
         "run_seconds": run.rec.get("elapsed_s"),
     }
-    out = {"label": args.label, "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-           "weave_url": llm.WEAVE_URL, "memory_backend": run.rec["memory_backend"], "llm": run.rec["llm"],
-           "metrics": metrics, "details": res}
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    ver = res["verification"]
+    decoys = [r for r in ver["rows"] if not r["is_conflict"]]
+    rec = res["recommendations"]
+    out = {
+        # frontend EvalResult (frontend/src/types.ts)
+        "detection": {"recall": res["detection"]["recall"], "precision": res["detection"]["precision"]},
+        "measurement": {"pet_mae_s": res["pet_error"]["mae_s"]},
+        "verification": {"accuracy": ver["accuracy"],
+                         "decoys_rejected": f"{sum(r['correct'] for r in decoys)}/{len(decoys)}"},
+        "patterns": {"purity": res["patterns"]["mean_purity"]},
+        "recommendations": {"from_catalog": rec["from_catalog"], "urls_valid": rec["url_reachable_or_cdn_blocked"],
+                            "claims_cited": rec["citations_valid"]},
+        "weave_url": llm.WEAVE_URL, "run_at": now,
+        # full detail
+        "label": args.label, "generated_at": now, "memory_backend": run.rec["memory_backend"], "llm": run.rec["llm"],
+        "metrics": metrics, "details": res}
     (C.GT_DIR / "eval_latest.json").write_text(json.dumps(out, indent=2))
     hist_p = C.GT_DIR / "eval_history.json"
     hist = json.loads(hist_p.read_text()) if hist_p.exists() else []

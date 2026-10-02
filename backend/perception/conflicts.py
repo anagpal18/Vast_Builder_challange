@@ -208,16 +208,18 @@ def _actor(tr, speed):
             "crosswalk": s.get("crosswalk"), "speed_mps": round(speed, 2)}
 
 
-def to_event(m, camera_id, site_id, duration_s=None):
+def to_event(m, camera_id, site_id, duration_s=None, fps=None):
     cs = camera_short(camera_id)
     tc = m["t_conflict"]
     t0 = max(0.0, tc - C.CLIP_PAD_S)
     t1 = tc + C.CLIP_PAD_S if duration_s is None else min(duration_s, tc + C.CLIP_PAD_S)
+    if fps:  # cut on frame boundaries so camera time = clip.t0 + media time holds exactly
+        t0, t1 = np.floor(t0 * fps) / fps, np.floor(t1 * fps) / fps
     eid = f"EV_{cs}_{int(tc * 10):04d}"
     return {
         "event_id": eid, "site_id": site_id, "camera_id": camera_id,
         "t_conflict": tc,
-        "clip": {"t0": round(t0, 2), "t1": round(t1, 2),
+        "clip": {"t0": round(float(t0), 4), "t1": round(float(t1), 4),
                  "url": f"/media/clips/{eid}.mp4", "thumb": f"/media/thumbs/{eid}.jpg"},
         "a": _actor(m["a"], m["speed_a"]), "b": _actor(m["b"], m["speed_b"]),
         "conflict_type": m["conflict_type"],
@@ -246,7 +248,7 @@ def measure_camera(camera_id, store, t_range=None, thresholds=None):
             m = analyze_pair(t1, t2, thresholds)
             if not m or not m["candidate"]:
                 continue
-            ev = to_event(m, camera_id, cam["site_id"], entry["duration_s"])
+            ev = to_event(m, camera_id, cam["site_id"], entry["duration_s"], cam.get("fps"))
             base, k = ev["event_id"], 1
             while ev["event_id"] in seen:
                 k += 1

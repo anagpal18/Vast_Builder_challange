@@ -93,7 +93,7 @@ export interface Verification {
   description: string
   contributing_factors: string[]
   conditions: { lighting: 'day' | 'night' | 'dusk'; weather: string; visibility_issue: boolean }
-  evasive_action: string
+  evasive_action: string | null
   model: string
   confidence: number
 }
@@ -109,7 +109,8 @@ export interface AlmostEvent {
   conflict_type: ConflictType
   conflict_point: Pt
   pet_s: number
-  min_ttc_s: number
+  /** null when the two never close in on each other at constant velocity */
+  min_ttc_s: number | null
   first_through: 'a' | 'b'
   severity: Severity
   score: number

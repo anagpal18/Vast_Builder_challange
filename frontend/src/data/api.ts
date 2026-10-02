@@ -5,14 +5,23 @@ import type {
   AlmostEvent, ConfigResponse, EvalResult, EventDetail, Pattern, SimilarEvent, SiteReport, WhatIf, Mat3, Ground,
 } from '../types.ts'
 
-export const API_BASE: string | undefined = import.meta.env.VITE_API_BASE || undefined
+// VITE_API_BASE=same-origin: the backend serves this build, so the API lives next to index.html
+// (http://host/ locally, http://host/app on the cluster Ingress).
+const RAW_BASE: string | undefined = import.meta.env.VITE_API_BASE || undefined
+function sameOriginBase() {
+  const dir = new URL('.', location.href)
+  return (dir.origin + dir.pathname).replace(/\/$/, '')
+}
+export const API_BASE: string | undefined = RAW_BASE === 'same-origin' ? sameOriginBase() : RAW_BASE
 export const WS_URL: string = import.meta.env.VITE_WS_URL || (API_BASE ? API_BASE.replace(/^http/, 'ws') + '/ws' : '')
 export const USE_MOCK = !API_BASE
+/** Mock files live under public/mock, relative to wherever the build is served. */
+export const MOCK_ROOT = `${import.meta.env.BASE_URL}mock`
 
 const cache = new Map<string, Promise<unknown>>()
 
 async function get<T>(real: string, mock: string): Promise<T> {
-  const url = USE_MOCK ? `/mock/${mock}` : `${API_BASE}${real}`
+  const url = USE_MOCK ? `${MOCK_ROOT}/${mock}` : `${API_BASE}${real}`
   if (!cache.has(url)) {
     cache.set(url, fetch(url).then((r) => {
       if (!r.ok) throw new Error(`${r.status} ${url}`)
@@ -39,7 +48,7 @@ export const api = {
   similar: (id: string) => get<SimilarEvent[]>(`/events/${id}/similar`, `similar/${id}.json`),
   patterns: () => get<Pattern[]>('/patterns', 'patterns.json'),
   report: (siteId: string) => get<SiteReport>(`/report/${siteId}`, `reports/${siteId}.json`),
-  reportMarkdownUrl: (siteId: string) => (USE_MOCK ? `/mock/reports/${siteId}.md` : `${API_BASE}/report/${siteId}.md`),
+  reportMarkdownUrl: (siteId: string) => (USE_MOCK ? `${MOCK_ROOT}/reports/${siteId}.md` : `${API_BASE}/report/${siteId}.md`),
   evalLatest: () => get<EvalResult>('/eval/latest', 'eval.json'),
 
   async investigate(): Promise<{ run_id: string }> {

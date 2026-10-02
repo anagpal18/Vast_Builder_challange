@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { api, mediaUrl, USE_MOCK, API_BASE } from '../data/api.ts'
+import { api, mediaUrl, USE_MOCK, API_BASE, MOCK_ROOT } from '../data/api.ts'
 import { useAsync, useConfig } from '../data/hooks.ts'
 import { useRoute, useRun } from '../store.ts'
 import { CLASS_LABEL, CONFLICT_LABEL, MOVEMENT_LABEL, mph, SEVERITY_COLOR } from '../lib/labels.ts'
@@ -552,7 +552,7 @@ function MarginTimeline({ ev, w, T, shift }: { ev: EventDetail; w: WhatIf; T: nu
       <div className="mb-1 flex items-center justify-between">
         <span className="text-xs uppercase tracking-widest text-mute">Margin at the conflict point</span>
         <span className="font-mono text-sm">
-          post-encroachment time <b style={{ color: SEVERITY_COLOR[ev.severity] }}>{ev.pet_s.toFixed(2)} s</b> · min time to collision {ev.min_ttc_s.toFixed(2)} s
+          post-encroachment time <b style={{ color: SEVERITY_COLOR[ev.severity] }}>{ev.pet_s.toFixed(2)} s</b> · min time to collision {ev.min_ttc_s == null ? '–' : `${ev.min_ttc_s.toFixed(2)} s`}
         </span>
       </div>
       <div className="relative">
@@ -683,7 +683,7 @@ function VerdictPanel({ ev }: { ev: EventDetail }) {
       )}
       <div className="grid grid-cols-4 gap-2 border-t border-line pt-3">
         <Fact label="margin (PET)" value={`${ev.pet_s.toFixed(2)} s`} color={SEVERITY_COLOR[ev.severity]} />
-        <Fact label="min TTC" value={`${ev.min_ttc_s.toFixed(2)} s`} />
+        <Fact label="min TTC" value={ev.min_ttc_s == null ? '–' : `${ev.min_ttc_s.toFixed(2)} s`} />
         <Fact label={`${CLASS_LABEL[ev.a.cls]} speed`} value={`${mph(ev.a.speed_mps)} mph`} />
         <Fact label={`${CLASS_LABEL[ev.b.cls]} speed`} value={`${mph(ev.b.speed_mps)} mph`} />
       </div>
@@ -705,7 +705,7 @@ function Fact({ label, value, color }: { label: string; value: string; color?: s
 }
 
 function CrashClip({ onClose, pet }: { onClose: () => void; pet: number }) {
-  const src = USE_MOCK ? '/mock/footage/CRASH_A.mp4' : `${API_BASE}/media/footage/CRASH_A.mp4`
+  const src = USE_MOCK ? `${MOCK_ROOT}/footage/CRASH_A.mp4` : `${API_BASE}/media/footage/CRASH_A.mp4`
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-10" onClick={onClose}>
       <div className="w-full max-w-5xl rounded-xl border border-line bg-panel p-4" onClick={(e) => e.stopPropagation()}>

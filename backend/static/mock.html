@@ -141,7 +141,7 @@ select{font:inherit;background:var(--panel);color:var(--fg);border:1px solid var
 </main>
 
 <script>
-const API = location.origin;
+const API = (location.origin + location.pathname).replace(/\/console\/?$/, "").replace(/\/$/, "");
 const STAGES = ["scan","measure","verify","remember","recall","pattern","recommend","report"];
 const COUNTS = ["video_minutes","road_users","interactions","candidates","verified","rejected","unsure","patterns","recommendations"];
 const $ = id => document.getElementById(id);

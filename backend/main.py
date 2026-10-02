@@ -29,6 +29,7 @@ from backend.state import STATE
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("almost.api")
 STATIC = Path(__file__).parent / "static"
+FRONTEND_DIST = C.ROOT / "frontend" / "dist"
 
 
 class Hub:
@@ -79,8 +80,8 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 app.mount("/media", StaticFiles(directory=C.DATA), name="media")
 
 
-@app.get("/", include_in_schema=False)
-def mock_frontend():
+@app.get("/console", include_in_schema=False)
+def test_console():
     return FileResponse(STATIC / "mock.html")
 
 
@@ -179,6 +180,11 @@ def get_pattern(pid: str):
 
 @app.get("/report/{site_id}.md", response_class=PlainTextResponse)
 def report_md(site_id: str):
+    return PlainTextResponse(_report_md(site_id), media_type="text/markdown; charset=utf-8",
+                             headers={"Content-Disposition": f'attachment; filename="almost-{site_id}.md"'})
+
+
+def _report_md(site_id):
     r = _report(site_id)
     s = r["site"]
     L = [f"# Near-miss report: {s['name']}", "",
@@ -284,3 +290,13 @@ async def ws(sock: WebSocket):
             await sock.receive_text()  # keepalive / ignore
     except WebSocketDisconnect:
         HUB.clients.discard(sock)
+
+
+# The frontend build (frontend/dist, built with VITE_API_BASE=same-origin) is served at /. Mounted last so every
+# API route above wins; unknown paths fall back to index.html (hash router).
+if FRONTEND_DIST.exists():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
+else:
+    @app.get("/", include_in_schema=False)
+    def no_frontend():
+        return FileResponse(STATIC / "mock.html")

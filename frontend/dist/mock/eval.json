@@ -1,0 +1,1 @@
+{"detection":{"recall":0.93,"precision":0.88},"measurement":{"pet_mae_s":0.11},"verification":{"accuracy":0.89,"decoys_rejected":"4/4"},"patterns":{"purity":1},"recommendations":{"from_catalog":1,"urls_valid":1,"claims_cited":1},"weave_url":"https://wandb.ai/site/weave","run_at":"2026-10-02T21:02:24.880Z"}
